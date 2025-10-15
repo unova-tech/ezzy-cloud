@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "lokalise.i18n-ally",
+    "biomejs.biome",
+    "EditorConfig.EditorConfig",
+    "bradlc.vscode-tailwindcss"
+  ]
+}

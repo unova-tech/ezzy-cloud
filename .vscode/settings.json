@@ -1,0 +1,16 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "files.associations": {
+    "*.css": "postcss"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+  "i18n-ally.localesPaths": ["messages", "src/app/i18n"],
+  "i18n-ally.keystyle": "nested",
+  "i18n-ally.sourceLanguage": "pt-br",
+  "i18n-ally.displayLanguage": "pt-br",
+  "i18n-ally.translate.openai.apiKey": "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",
+  "i18n-ally.translate.openai.apiModel": "gpt-4"
+}

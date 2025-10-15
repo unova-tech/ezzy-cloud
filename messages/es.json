@@ -1,0 +1,25 @@
+{
+  "LandingPage": {
+    "Description": "Su plataforma definitiva para el alojamiento de aplicaciones en la nube."
+  },
+  "WelcomeEmail": {
+    "earn-more-credits": "¡Gana aún más créditos compartiendo!",
+    "earn-more-credits-explain": "Utilice su código de referencia único para invitar a amigos y colegas. Cada persona que se registre con su código obtendrá ambos créditos en el momento del lanzamiento.",
+    "earn-more-credits-observation": "Usted y su referido ganarán cada uno $5 en créditos. Límite de 2 nominaciones por dirección IP y 1 por dispositivo. Máximo $30 en créditos gratis por usuario.",
+    "footer-1": "Quedamos a su disposición para cualquier consulta. ¡Muchas gracias por ser parte de este viaje!",
+    "footer-2": "Tuyo sinceramente,",
+    "footer-3": "Equipo EzzyCloud",
+    "form-button": "Rellenar formulario",
+    "help-us-1": "Ayúdanos a construir el producto perfecto para ti y",
+    "help-us-2": "obtenga $30 en créditos gratis",
+    "help-us-3": "Simplemente complete nuestro formulario rápido compartiendo sus necesidades y expectativas:",
+    "preview": "¡Gracias por tu interés! Ayúdanos a construir la mejor solución en la nube para automatizaciones y gana créditos.",
+    "title": "¡Bienvenido a Ezzy Cloud!",
+    "welcome": "Estamos muy contentos con su interés en nuestra plataforma. Estamos trabajando arduamente para crear una solución de automatización en la nube excepcional adaptada a sus necesidades."
+  },
+  "EmailLayout": {
+    "copyright": "Reservados todos los derechos.",
+    "observation": "Este es un mensaje automático, por favor no responda. Si lo necesita, póngase en contacto con nosotros por correo electrónico",
+    "title": "Ezzy Cloud - Soluciones en la nube para automatizaciones"
+  }
+}
