@@ -11,8 +11,7 @@
     "email:dev": "email dev --dir src/emails --port 4000",
     "database:generate": "drizzle-kit generate",
     "database:migrate": "drizzle-kit push",
-    "database:studio": "drizzle-kit studio",
-    "generate": "kubb generate"
+    "database:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@bogeychan/elysia-logger": "^0.1.10",
