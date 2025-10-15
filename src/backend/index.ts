@@ -123,6 +123,8 @@ const app = new Elysia({ prefix: "/api" })
         })
       ])
 
+      console.log(createContactResult)
+
       if (
         createContactResult.status === "rejected" ||
         !createContactResult.value?.data?.id
