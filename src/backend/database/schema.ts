@@ -3,7 +3,7 @@ import { defaultLanguage, supportedLanguages } from "@/i18n/languages"
 
 export const languagesEnum = pgEnum("languages", supportedLanguages)
 
-export const users = pgTable("waitlist", {
+export const signatures = pgTable("waitlist", {
   id: uuid("id").primaryKey(),
   email: text("email").notNull().unique(),
   referralCode: text("referral_code").notNull().unique(),

@@ -1,0 +1,19 @@
+{
+  "servers": {
+    "Sentry": {
+      "url": "https://mcp.sentry.dev/mcp/unova-nn/ezzy-cloud",
+      "type": "http"
+    },
+    "api-tools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@tyk-technologies/api-to-mcp@latest",
+        "--spec",
+        "http://localhost:3000/api/swagger/json",
+        "--targetUrl",
+        "http://localhost:3000",
+      ]
+    }
+  }
+}

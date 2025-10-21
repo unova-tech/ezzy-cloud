@@ -1,18 +1,13 @@
 "use client"
 
-import { valibotResolver } from "@hookform/resolvers/valibot"
 import conffeti from "canvas-confetti"
 import { Mail, SendHorizonal } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
-import * as v from "valibot"
 import { Button } from "@/components/ui/button"
 import httpClient from "@/lib/localHttpClient"
-
-const schema = v.object({
-  email: v.pipe(v.string(), v.email())
-})
+import { cn } from "@/lib/utils"
 
 const WaitListForm: React.FC = () => {
   const searchParams = useSearchParams()
@@ -23,7 +18,7 @@ const WaitListForm: React.FC = () => {
     register,
     formState: { isSubmitting, isDirty }
   } = useForm({
-    resolver: valibotResolver(schema),
+    defaultValues: { email: "" },
     mode: "onBlur"
   })
 
@@ -82,7 +77,11 @@ const WaitListForm: React.FC = () => {
       <div className="md:pr-1.5 lg:pr-0">
         <Button
           aria-label="submit"
-          className="rounded-(--radius) cursor-pointer"
+          className={cn(
+            "*:rounded-(--radius) cursor-pointer",
+            isSubmitting && "cursor-progress",
+            !isDirty && "cursor-not-allowed"
+          )}
           type="submit"
           disabled={isSubmitting || !isDirty}
         >

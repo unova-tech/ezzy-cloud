@@ -1,5 +1,6 @@
 import { logger } from "@bogeychan/elysia-logger"
 import { serverTiming } from "@elysiajs/server-timing"
+import { swagger } from "@elysiajs/swagger"
 import { count, eq, sql } from "drizzle-orm"
 import Elysia, { t } from "elysia"
 import Mailchecker from "mailchecker"
@@ -9,7 +10,8 @@ import { v7 as uuidv7 } from "uuid"
 import WelcomeEmail from "@/emails/welcome"
 import { defaultLanguage, type SupportedLanguages } from "@/i18n/languages"
 import config from "@/lib/config"
-import db, { users } from "./database"
+import db, { signatures } from "./database"
+import conversorController from "./modules/conversor/conversor.controller"
 
 const nanoid = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
@@ -21,23 +23,23 @@ const resend = new Resend(config.RESEND_API_KEY)
 const MAX_USERS_PER_IP = 2
 
 const waitlistCount = db
-  .select({ count: count(users.id) })
-  .from(users)
+  .select({ count: count(signatures.id) })
+  .from(signatures)
   .$withCache()
   .prepare("waitlistCount")
 
 const usersExist = db
   .select({ exists: sql<number>`1` })
-  .from(users)
-  .where(eq(users.email, sql.placeholder("email")))
+  .from(signatures)
+  .where(eq(signatures.email, sql.placeholder("email")))
   .limit(1)
   .$withCache()
   .prepare("usersExist")
 
 const checkIpUsage = db
-  .select({ count: count(users.id) })
-  .from(users)
-  .where(eq(users.ipAddress, sql.placeholder("ip")))
+  .select({ count: count(signatures.id) })
+  .from(signatures)
+  .where(eq(signatures.ipAddress, sql.placeholder("ip")))
   .limit(MAX_USERS_PER_IP)
   .$withCache()
   .prepare("checkIpUsage")
@@ -45,6 +47,7 @@ const checkIpUsage = db
 const app = new Elysia({ prefix: "/api" })
   .use(logger())
   .use(serverTiming())
+  .use(swagger())
   .derive(({ request, headers, server, cookie: { language } }) => ({
     ip:
       server?.requestIP?.(request) ??
@@ -84,9 +87,9 @@ const app = new Elysia({ prefix: "/api" })
 
       if (referredByCode) {
         const [referrer] = await db
-          .select({ id: users.id })
-          .from(users)
-          .where(eq(users.referralCode, referredByCode))
+          .select({ id: signatures.id })
+          .from(signatures)
+          .where(eq(signatures.referralCode, referredByCode))
           .limit(1)
 
         if (referrer && Number(ipUsage) < MAX_USERS_PER_IP) {
@@ -108,7 +111,7 @@ const app = new Elysia({ prefix: "/api" })
             attributes: { email }
           })
         }).then((res) => res.json() as Promise<{ data?: { id?: string } }>),
-        db.insert(users).values({
+        db.insert(signatures).values({
           id: uuidv7(),
           email,
           referralCode,
@@ -122,8 +125,6 @@ const app = new Elysia({ prefix: "/api" })
           audienceId: "a3c32118-ed0b-4274-a424-31267026fd9b"
         })
       ])
-
-      console.log(createContactResult)
 
       if (
         createContactResult.status === "rejected" ||
@@ -167,6 +168,7 @@ const app = new Elysia({ prefix: "/api" })
       })
     }
   )
+  .use(conversorController)
 
 export type App = typeof app
 
