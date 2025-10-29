@@ -1,336 +1,229 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { AnimatePresence, motion } from "framer-motion"
-import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react"
-import { useState } from "react"
+import { SiGoogle } from "@icons-pack/react-simple-icons"
+import {
+  DEFAULT_SCRIPT_ID,
+  SCRIPT_URL,
+  Turnstile
+} from "@marsidev/react-turnstile"
+import { Loader2 } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import Script from "next/script"
+import { useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { Button } from "../../components/ui/button"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
-import { Progress } from "../../components/ui/progress"
-import { cn } from "../../lib/utils"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { signIn, signUp } from "@/lib/auth-client"
+import publicConfig from "@/lib/public-config"
 
-// Define the form schema for each step
-const personalInfoSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address")
+const registerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
 })
 
-const addressSchema = z.object({
-  address: z.string().min(5, "Address must be at least 5 characters"),
-  city: z.string().min(2, "City must be at least 2 characters"),
-  zipCode: z.string().min(5, "Zip code must be at least 5 characters")
-})
+type RegisterForm = z.infer<typeof registerSchema>
 
-const accountSchema = z
-  .object({
-    username: z.string().min(3, "Username must be at least 3 characters"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[0-9]/, "Password must contain at least one number"),
-    confirmPassword: z.string()
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"]
-  })
+export default function RegisterPage() {
+  const router = useRouter()
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const turnstileTokenRef = useRef<string>("")
 
-// Combine all schemas for the final form data
-const formSchema = z.object({
-  ...personalInfoSchema.shape,
-  ...addressSchema.shape,
-  ...accountSchema.shape
-})
-
-type FormData = z.infer<typeof formSchema>
-
-interface MultiStepFormProps {
-  className?: string
-  onSubmit?: (data: FormData) => void
-}
-
-export default function MultiStepForm({
-  className,
-  onSubmit
-}: MultiStepFormProps) {
-  const [step, setStep] = useState(0)
-  const [formData, setFormData] = useState<Partial<FormData>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isComplete, setIsComplete] = useState(false)
-
-  // Define the steps
-  const steps = [
-    {
-      id: "personal",
-      title: "Personal Information",
-      description: "Tell us about yourself",
-      schema: personalInfoSchema,
-      fields: [
-        {
-          name: "firstName",
-          label: "First Name",
-          type: "text",
-          placeholder: "John"
-        },
-        {
-          name: "lastName",
-          label: "Last Name",
-          type: "text",
-          placeholder: "Doe"
-        },
-        {
-          name: "email",
-          label: "Email",
-          type: "email",
-          placeholder: "john.doe@example.com"
-        }
-      ]
-    },
-    {
-      id: "address",
-      title: "Address Information",
-      description: "Where do you live?",
-      schema: addressSchema,
-      fields: [
-        {
-          name: "address",
-          label: "Address",
-          type: "text",
-          placeholder: "123 Main St"
-        },
-        { name: "city", label: "City", type: "text", placeholder: "New York" },
-        {
-          name: "zipCode",
-          label: "Zip Code",
-          type: "text",
-          placeholder: "10001"
-        }
-      ]
-    },
-    {
-      id: "account",
-      title: "Account Setup",
-      description: "Create your account",
-      schema: accountSchema,
-      fields: [
-        {
-          name: "username",
-          label: "Username",
-          type: "text",
-          placeholder: "johndoe"
-        },
-        {
-          name: "password",
-          label: "Password",
-          type: "password",
-          placeholder: "••••••••"
-        },
-        {
-          name: "confirmPassword",
-          label: "Confirm Password",
-          type: "password",
-          placeholder: "••••••••"
-        }
-      ]
-    }
-  ]
-
-  // Get the current step schema
-  const currentStepSchema = steps[step].schema as z.ZodType<any, any, any>
-
-  // Setup form with the current step schema
   const {
     register,
     handleSubmit,
-    formState: { errors },
-    reset
-  } = useForm<any>({
-    resolver: zodResolver(currentStepSchema),
-    defaultValues: formData
+    formState: { errors }
+  } = useForm<RegisterForm>({
+    resolver: zodResolver(registerSchema)
   })
 
-  // Calculate progress percentage
-  const progress = ((step + 1) / steps.length) * 100
+  const onSubmit = async (data: RegisterForm) => {
+    const token = turnstileTokenRef.current
 
-  // Handle next step
-  const handleNextStep = (data: any) => {
-    const updatedData = { ...formData, ...data }
-    setFormData(updatedData)
+    if (!token) {
+      setError("Please complete the CAPTCHA verification")
+      return
+    }
 
-    if (step < steps.length - 1) {
-      setStep(step + 1)
-      // Reset form with the updated data for the next step
-      reset(updatedData)
-    } else {
-      // Final step submission
-      setIsSubmitting(true)
-      setTimeout(() => {
-        if (onSubmit) {
-          onSubmit(updatedData as FormData)
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const result = await signUp.email({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        fetchOptions: {
+          headers: {
+            "x-captcha-response": token
+          }
         }
-        setIsComplete(true)
-        setIsSubmitting(false)
-      }, 1500)
+      })
+
+      if (result.error) {
+        setError(result.error.message || "Failed to create account")
+        setIsLoading(false)
+        return
+      }
+
+      // Redirect to verify email page
+      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`)
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.")
+      setIsLoading(false)
     }
   }
 
-  // Handle previous step
-  const handlePrevStep = () => {
-    if (step > 0) {
-      setStep(step - 1)
-    }
-  }
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true)
+    setError(null)
 
-  // Animation variants
-  const variants = {
-    hidden: { opacity: 0, x: 50 },
-    visible: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -50 }
+    try {
+      await signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard"
+      })
+    } catch (err) {
+      setError("Failed to sign in with Google")
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div
-      className={cn(
-        "bg-card/40 mx-auto w-full max-w-md rounded-lg p-6 shadow-lg",
-        className
-      )}
-    >
-      {!isComplete ? (
-        <>
-          {/* Progress bar */}
-          <div className="mb-8">
-            <div className="mb-2 flex justify-between">
-              <span className="text-sm font-medium">
-                Step {step + 1} of {steps.length}
-              </span>
-              <span className="text-sm font-medium">
-                {Math.round(progress)}%
-              </span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-
-          {/* Step indicators */}
-          <div className="mb-8 flex justify-between">
-            {steps.map((s, i) => (
-              <div key={s.id} className="flex flex-col items-center">
-                <div
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold",
-                    i < step
-                      ? "bg-primary text-primary-foreground"
-                      : i === step
-                        ? "bg-primary text-primary-foreground ring-primary/30 ring-2"
-                        : "bg-secondary text-secondary-foreground"
-                  )}
-                >
-                  {i < step ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
-                </div>
-                <span className="mt-1 hidden text-xs sm:block">{s.title}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Form */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              variants={variants}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="mb-6">
-                <h2 className="text-xl font-bold">{steps[step].title}</h2>
-                <p className="text-muted-foreground text-sm">
-                  {steps[step].description}
-                </p>
-              </div>
-
-              <form
-                onSubmit={handleSubmit(handleNextStep)}
-                className="space-y-4"
-              >
-                {steps[step].fields.map((field) => (
-                  <div key={field.name} className="space-y-2">
-                    <Label htmlFor={field.name}>{field.label}</Label>
-                    <Input
-                      id={field.name}
-                      type={field.type}
-                      placeholder={field.placeholder}
-                      {...register(field.name as any)}
-                      className={cn(
-                        errors[field.name as string] && "border-destructive"
-                      )}
-                    />
-                    {errors[field.name as string] && (
-                      <p className="text-destructive text-sm">
-                        {errors[field.name as string]?.message as string}
-                      </p>
-                    )}
-                  </div>
-                ))}
-
-                <div className="flex justify-between pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePrevStep}
-                    disabled={step === 0}
-                    className={cn(step === 0 && "invisible")}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {step === steps.length - 1 ? (
-                      isSubmitting ? (
-                        "Submitting..."
-                      ) : (
-                        "Submit"
-                      )
-                    ) : (
-                      <>
-                        Next <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
-          </AnimatePresence>
-        </>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="py-10 text-center"
-        >
-          <div className="bg-primary/10 mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full">
-            <CheckCircle2 className="text-primary h-8 w-8" />
-          </div>
-          <h2 className="mb-2 text-2xl font-bold">Form Submitted!</h2>
-          <p className="text-muted-foreground mb-6">
-            Thank you for completing the form. We&apos;ll be in touch soon.
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Script
+        id={DEFAULT_SCRIPT_ID}
+        src={SCRIPT_URL}
+        strategy="beforeInteractive"
+      />
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">Create an account</h1>
+          <p className="mt-2 text-muted-foreground">
+            Get started with Ezzy Cloud
           </p>
-          <Button
-            onClick={() => {
-              setStep(0)
-              setFormData({})
-              setIsComplete(false)
-              reset({})
-            }}
-          >
-            Start Over
+        </div>
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="John Doe"
+              disabled={isLoading}
+              {...register("name")}
+            />
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="john@example.com"
+              disabled={isLoading}
+              {...register("email")}
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              disabled={isLoading}
+              {...register("password")}
+            />
+            {errors.password && (
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+
+          <div className="w-full flex items-center justify-center">
+            <Turnstile
+              injectScript={false}
+              siteKey={publicConfig.TURNSTILE_SITE_KEY}
+              onSuccess={(token) => {
+                console.log("Turnstile success on register")
+                turnstileTokenRef.current = token
+              }}
+              onError={(error) => {
+                console.error("Turnstile error:", error)
+                setError("CAPTCHA verification failed. Please try again.")
+              }}
+            />
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating account...
+              </>
+            ) : (
+              "Create account"
+            )}
           </Button>
-        </motion.div>
-      )}
+        </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+        >
+          <SiGoogle className="mr-2 h-4 w-4" />
+          Sign up with Google
+        </Button>
+
+        <p className="text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="font-medium underline underline-offset-4"
+          >
+            Sign in
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

@@ -11,7 +11,9 @@ import { Resend } from "resend"
 import { v7 as uuidv7 } from "uuid"
 import config from "../web/src/lib/config"
 import db, { signatures } from "./database"
-import { auth } from "./lib/auth"
+import { betterAuthPlugin } from "./better-auth"
+import { workflowsModule } from "./modules/workflows"
+import { secretsModule } from "./modules/workflows/secrets"
 
 const nanoid = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
@@ -53,16 +55,18 @@ const app = new Elysia({ prefix: "/api" })
       origin: "http://localhost:3001",
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       credentials: true,
-      allowedHeaders: ["Content-Type", "Authorization"]
+      allowedHeaders: ["Content-Type", "Authorization", "x-captcha-response"]
     })
   )
+  .use(betterAuthPlugin)
   .derive(({ request, headers, server }) => ({
     ip:
       server?.requestIP?.(request)?.address ??
       headers?.["x-forwarded-for"]?.trim() ??
       (config.NODE_ENV === "development" ? "127.0.0.1" : null)
   }))
-  .mount(auth.handler)
+  .use(workflowsModule)
+  .use(secretsModule)
   .get("/waitlist", async () => {
     const [{ count } = { count: 0 }] = await waitlistCount.execute()
     return { success: true, data: { count } }

@@ -20,7 +20,7 @@ $ pnpm add @boundaryml/baml
 
 import type { Image, Audio, Pdf, Video } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
-import type {  Resume } from "./types"
+import type {  TextElement,  ViewElement,  Wireframe,  Wireframes } from "./types"
 import type * as types from "./types"
 
 /******************************************************************************
@@ -36,10 +36,22 @@ export interface StreamState<T> {
 }
 
 export namespace partial_types {
-    export interface Resume {
-      name?: string | null
-      email?: string | null
-      experience: string[]
-      skills: string[]
+    export interface TextElement {
+      tag?: "text" | null
+      text?: string | null
+      css?: string | null
     }
+    export interface ViewElement {
+      tag?: "view" | null
+      children: (TextElement | ViewElement)[]
+      css?: string | null
+    }
+    export interface Wireframe {
+      elements: (TextElement | ViewElement)[]
+    }
+    export interface Wireframes {
+      wireframes: types.Checked<Wireframe[],"more_than_3">
+    }
+export type Element = TextElement | ViewElement | null
+
 }

@@ -1,11 +1,14 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import "./globals.css"
-import { AutumnProvider } from "autumn-js/react"
+// import { AutumnProvider } from "autumn-js/react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
+import { AuthProvider } from "../lib/auth-context"
 import { Toaster } from "../components/ui/sonner"
-import publicConfig from "../lib/public-config"
+import { QueryProvider } from "./providers"
+// import publicConfig from "../lib/public-config"
 import Tracker from "./tracker"
+
+import "./globals.css"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,11 +36,15 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextThemesProvider attribute="class" enableSystem>
-          <AutumnProvider betterAuthUrl={publicConfig.BETTER_AUTH_URL}>
-            {children}
-          </AutumnProvider>
-          <Toaster position="top-center" />
-          <Tracker />
+          <QueryProvider>
+            <AuthProvider>
+              {/* <AutumnProvider betterAuthUrl={publicConfig.BETTER_AUTH_URL}> */}
+                {children}
+              {/* </AutumnProvider> */}
+              <Toaster position="top-center" />
+              <Tracker />
+            </AuthProvider>
+          </QueryProvider>
         </NextThemesProvider>
       </body>
     </html>

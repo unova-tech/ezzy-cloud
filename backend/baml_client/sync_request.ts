@@ -22,7 +22,7 @@ import type { BamlRuntime, BamlCtxManager, ClientRegistry, Image, Audio, Pdf, Vi
 import { toBamlError, HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
 import type * as types from "./types"
-import type {Resume} from "./types"
+import type {TextElement, ViewElement, Wireframe, Wireframes} from "./types"
 import type TypeBuilder from "./type_builder"
 import type * as events from "./events"
 
@@ -37,7 +37,7 @@ export class HttpRequest {
   constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager) {}
 
   
-  ExtractResume(
+  GenerateWireframes(
       resume: string,
       __baml_options__?: BamlCallOptions<never>
   ): HTTPRequest {
@@ -47,7 +47,7 @@ export class HttpRequest {
         Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
       );
       return this.runtime.buildRequestSync(
-        "ExtractResume",
+        "GenerateWireframes",
         {
           "resume": resume
         },
@@ -68,7 +68,7 @@ export class HttpStreamRequest {
   constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager) {}
 
   
-  ExtractResume(
+  GenerateWireframes(
       resume: string,
       __baml_options__?: BamlCallOptions<never>
   ): HTTPRequest {
@@ -78,7 +78,7 @@ export class HttpStreamRequest {
         Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
       );
       return this.runtime.buildRequestSync(
-        "ExtractResume",
+        "GenerateWireframes",
         {
           "resume": resume
         },

@@ -1,0 +1,16 @@
+{
+  "name": "workflow-runtime",
+  "module": "index.ts",
+  "type": "module",
+  "dependencies": {
+    "zod": "^4.1.12",
+    "@cloudflare/workers-types": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

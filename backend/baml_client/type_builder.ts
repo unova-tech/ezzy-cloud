@@ -27,14 +27,20 @@ export { FieldType, EnumBuilder, ClassBuilder }
 export default class TypeBuilder {
     private tb: _TypeBuilder;
     
-    Resume: ClassViewer<'Resume', "name" | "email" | "experience" | "skills">;
+    TextElement: ClassViewer<'TextElement', "tag" | "text" | "css">;
+    
+    ViewElement: ClassViewer<'ViewElement', "tag" | "children" | "css">;
+    
+    Wireframe: ClassViewer<'Wireframe', "elements">;
+    
+    Wireframes: ClassViewer<'Wireframes', "wireframes">;
     
     
 
     constructor() {
         this.tb = new _TypeBuilder({
           classes: new Set([
-            "Resume",
+            "TextElement","ViewElement","Wireframe","Wireframes",
           ]),
           enums: new Set([
             
@@ -42,8 +48,20 @@ export default class TypeBuilder {
           runtime: DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME
         });
         
-        this.Resume = this.tb.classViewer("Resume", [
-          "name","email","experience","skills",
+        this.TextElement = this.tb.classViewer("TextElement", [
+          "tag","text","css",
+        ]);
+        
+        this.ViewElement = this.tb.classViewer("ViewElement", [
+          "tag","children","css",
+        ]);
+        
+        this.Wireframe = this.tb.classViewer("Wireframe", [
+          "elements",
+        ]);
+        
+        this.Wireframes = this.tb.classViewer("Wireframes", [
+          "wireframes",
         ]);
         
         

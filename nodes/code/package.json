@@ -1,0 +1,24 @@
+{
+  "name": "nodes-code",
+  "module": "index.ts",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./runtime": "./runtime.ts"
+  },
+  "ezzy-cloud": {
+    "nodes": ["./definition.ts"]
+  },
+  "dependencies": {
+    "node-base": "workspace:*",
+    "zod": "^4.1.12",
+    "@icons-pack/react-simple-icons": "^10.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  }
+}

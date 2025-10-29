@@ -24,7 +24,7 @@ import { toBamlError, BamlStream, BamlAbortError, Collector } from "@boundaryml/
 import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
 import type { partial_types } from "./partial_types"
 import type * as types from "./types"
-import type {Resume} from "./types"
+import type {TextElement, ViewElement, Wireframe, Wireframes} from "./types"
 import type TypeBuilder from "./type_builder"
 import { AsyncHttpRequest, AsyncHttpStreamRequest } from "./async_request"
 import { LlmResponseParser, LlmStreamParser } from "./parser"
@@ -96,10 +96,10 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
         }
 
         
-        async ExtractResume(
+        async GenerateWireframes(
         resume: string,
         __baml_options__?: BamlCallOptions<never>
-        ): Promise<types.Resume> {
+        ): Promise<types.Wireframes> {
           try {
           const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
           const signal = options.signal;
@@ -110,7 +110,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
 
           // Check if onTick is provided - route through streaming if so
           if (options.onTick) {
-          const stream = this.stream.ExtractResume(
+          const stream = this.stream.GenerateWireframes(
           resume,
           __baml_options__
           );
@@ -125,7 +125,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
             Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
             );
             const raw = await this.runtime.callFunction(
-            "ExtractResume",
+            "GenerateWireframes",
             {
             "resume": resume
             },
@@ -138,7 +138,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
             signal,
             options.events,
             )
-            return raw.parsed(false) as types.Resume
+            return raw.parsed(false) as types.Wireframes
             } catch (error) {
             throw toBamlError(error);
             }
@@ -158,10 +158,10 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
             }
 
             
-            ExtractResume(
+            GenerateWireframes(
             resume: string,
             __baml_options__?: BamlCallOptions<never>
-            ): BamlStream<partial_types.Resume, types.Resume>
+            ): BamlStream<partial_types.Wireframes, types.Wireframes>
               {
               try {
               const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
@@ -187,7 +187,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
               try {
               options.onTick!("Unknown", log);
               } catch (error) {
-              console.error("Error in onTick callback for ExtractResume", error);
+              console.error("Error in onTick callback for GenerateWireframes", error);
               }
               }
               };
@@ -198,7 +198,7 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
                 Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
                 );
                 const raw = this.runtime.streamFunction(
-                "ExtractResume",
+                "GenerateWireframes",
                 {
                 "resume": resume
                 },
@@ -212,10 +212,10 @@ export type RecursivePartialNull<T> = MovedRecursivePartialNull<T>
                 signal,
                 onTickWrapper,
                 )
-                return new BamlStream<partial_types.Resume, types.Resume>(
+                return new BamlStream<partial_types.Wireframes, types.Wireframes>(
                   raw,
-                  (a): partial_types.Resume => a,
-                  (a): types.Resume => a,
+                  (a): partial_types.Wireframes => a,
+                  (a): types.Wireframes => a,
                   this.ctxManager.cloneContext(),
                   options.signal,
                   )

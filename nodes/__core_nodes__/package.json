@@ -1,0 +1,17 @@
+{
+  "name": "core-nodes",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "nodes-http-request": "workspace:*",
+    "nodes-code": "workspace:*",
+    "nodes-resend": "workspace:*",
+    "node-base": "workspace:*"
+  }
+}

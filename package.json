@@ -17,6 +17,8 @@
   "workspaces": [
     "web",
     "backend",
-    "emails"
+    "emails",
+    "nodes/*",
+    "runtime"
   ]
 }

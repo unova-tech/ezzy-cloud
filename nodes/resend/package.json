@@ -1,0 +1,31 @@
+{
+  "name": "nodes-resend",
+  "module": "index.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./runtime/send-email": {
+      "types": "./nodes/send-email/runtime.ts",
+      "default": "./nodes/send-email/runtime.ts"
+    },
+    "./secrets/apikey": {
+      "types": "./secrets/apikey-secret.ts",
+      "default": "./secrets/apikey-secret.ts"
+    }
+  },
+  "ezzy-cloud": {
+    "secrets": ["./secrets/apikey-secret.ts"],
+    "nodes": ["./nodes/send-email/definition.ts"]
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "devDependencies": {
+    "@icons-pack/react-simple-icons": "^13.8.0",
+    "node-base": "workspace:*",
+    "zod": "^4.1.12"
+  }
+}

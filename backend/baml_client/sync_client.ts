@@ -22,7 +22,7 @@ import type { BamlRuntime, FunctionResult, BamlCtxManager, Image, Audio, Pdf, Vi
 import { toBamlError, BamlAbortError, type HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
 import type * as types from "./types"
-import type {Resume} from "./types"
+import type {TextElement, ViewElement, Wireframe, Wireframes} from "./types"
 import type TypeBuilder from "./type_builder"
 import { HttpRequest, HttpStreamRequest } from "./sync_request"
 import { LlmResponseParser, LlmStreamParser } from "./parser"
@@ -96,10 +96,10 @@ export class BamlSyncClient {
   }
 
   
-  ExtractResume(
+  GenerateWireframes(
       resume: string,
       __baml_options__?: BamlCallOptions<never>
-  ): types.Resume {
+  ): types.Wireframes {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const signal = options.signal;
@@ -119,7 +119,7 @@ export class BamlSyncClient {
         Object.entries(rawEnv).filter(([_, value]) => value !== undefined) as [string, string][]
       );
       const raw = this.runtime.callFunctionSync(
-        "ExtractResume",
+        "GenerateWireframes",
         {
           "resume": resume
         },
@@ -132,7 +132,7 @@ export class BamlSyncClient {
         signal,
         options.events,
       )
-      return raw.parsed(false) as types.Resume
+      return raw.parsed(false) as types.Wireframes
     } catch (error: any) {
       throw toBamlError(error);
     }

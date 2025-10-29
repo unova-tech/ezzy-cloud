@@ -10,19 +10,24 @@ import {
   twoFactorClient
 } from "better-auth/client/plugins"
 import { createAuthClient } from "better-auth/react"
+import publicConfig from "./public-config"
 
-export const authClient = createAuthClient({
-  plugins: [
-    emailOTPClient(),
-    adminClient(),
-    organizationClient(),
-    apiKeyClient(),
-    twoFactorClient(),
-    phoneNumberClient(),
-    passkeyClient(),
-    lastLoginMethodClient(),
+const plugins = [
+  emailOTPClient(),
+  adminClient(),
+  organizationClient(),
+  apiKeyClient(),
+  twoFactorClient(),
+  phoneNumberClient(),
+  passkeyClient(),
+  lastLoginMethodClient(),
+]
+
+// Only add oneTapClient if Google Client ID is configured
+if (publicConfig.GOOGLE_CLIENT_ID) {
+  plugins.push(
     oneTapClient({
-      clientId: "YOUR_CLIENT_ID",
+      clientId: publicConfig.GOOGLE_CLIENT_ID,
       autoSelect: false,
       cancelOnTapOutside: true,
       context: "signin",
@@ -31,5 +36,12 @@ export const authClient = createAuthClient({
         maxAttempts: 5
       }
     })
-  ]
+  )
+}
+
+export const authClient = createAuthClient({
+  baseURL: publicConfig.BETTER_AUTH_URL,
+  plugins
 })
+
+export const { signIn, signUp, signOut, useSession } = authClient

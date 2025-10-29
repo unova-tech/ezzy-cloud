@@ -19,8 +19,9 @@ import {
   Users
 } from "lucide-react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import Script from "next/script"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useForm } from "react-hook-form"
 import * as v from "valibot"
 import { authClient } from "../../lib/auth-client"
@@ -29,37 +30,79 @@ import publicConfig from "../../lib/public-config"
 const loginSchema = v.object({
   email: v.pipe(v.string(), v.minLength(1)),
   password: v.pipe(v.string(), v.minLength(1)),
-  "cf-turnstile-response": v.pipe(v.string(), v.minLength(1))
 })
 
 type LoginFormData = v.InferInput<typeof loginSchema>
 
 export default function SignInPage() {
+  const searchParams = useSearchParams()
+  
   const {
     register,
     handleSubmit,
-    formState: { isLoading, isDirty }
+    formState: { errors }
   } = useForm<LoginFormData>({
     resolver: valibotResolver(loginSchema),
     mode: "onBlur"
   })
 
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string>("")
+  const turnstileTokenRef = useRef<string>("")
 
   const onSubmit = handleSubmit(
-    ({ email, password, "cf-turnstile-response": turnstileToken }) => {
-      console.log(turnstileToken)
-      return authClient.signIn.email({
-        email,
-        password,
-        fetchOptions: {
-          headers: {
-            "x-captcha-response": turnstileToken
+    async ({ email, password }) => {
+      const token = turnstileTokenRef.current
+      console.log("Form submitted", { email, hasTurnstile: !!token, token: token.substring(0, 20) + "..." })
+      
+      if (!token) {
+        setError("Please complete the CAPTCHA verification")
+        return
+      }
+      
+      setError(null)
+      setIsLoading(true)
+      try {
+        const redirectTo = searchParams.get("redirect_to") || "/dashboard"
+        
+        const result = await authClient.signIn.email({
+          email,
+          password,
+          callbackURL: redirectTo,
+          fetchOptions: {
+            headers: {
+              "x-captcha-response": token
+            }
           }
+        })
+
+        console.log("Sign in result:", result)
+
+        if (result.error) {
+          setError(result.error.message || "Failed to sign in")
         }
-      })
+        // Better Auth handles the redirect automatically via callbackURL
+      } catch (err) {
+        console.error("Sign in error:", err)
+        setError("An unexpected error occurred")
+      } finally {
+        setIsLoading(false)
+      }
     }
   )
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard"
+      })
+    } catch (err) {
+      setError("Failed to sign in with Google")
+    }
+  }
 
   return (
     <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden p-4">
@@ -165,6 +208,11 @@ export default function SignInPage() {
                 </div>
 
                 <form onSubmit={onSubmit} className="space-y-6">
+                  {error && (
+                    <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
+                      {error}
+                    </div>
+                  )}
                   <div>
                     <label
                       htmlFor="email"
@@ -185,6 +233,9 @@ export default function SignInPage() {
                         placeholder="Enter your email"
                       />
                     </div>
+                    {errors.email && (
+                      <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
+                    )}
                   </div>
 
                   <div>
@@ -221,6 +272,9 @@ export default function SignInPage() {
                         )}
                       </button>
                     </div>
+                    {errors.password && (
+                      <p className="text-sm text-destructive mt-1">{errors.password.message}</p>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -232,7 +286,7 @@ export default function SignInPage() {
                       <span className="ml-2">Remember me</span>
                     </label>
                     <Link
-                      href="#"
+                      href="/forgot-password"
                       className="text-primary hover:text-primary/80 text-sm"
                     >
                       Forgot password?
@@ -243,13 +297,22 @@ export default function SignInPage() {
                     <Turnstile
                       injectScript={false}
                       siteKey={publicConfig.TURNSTILE_SITE_KEY}
+                      onSuccess={(token) => {
+                        console.log("Turnstile success, token:", token)
+                        setTurnstileToken(token)
+                        turnstileTokenRef.current = token
+                      }}
+                      onError={(error) => {
+                        console.error("Turnstile error:", error)
+                        setError("CAPTCHA verification failed. Please try again.")
+                      }}
                     />
                   </div>
 
                   <button
                     type="submit"
                     className="login-btn relative flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-medium text-white transition-all duration-300"
-                    disabled={isLoading || !isDirty}
+                    disabled={isLoading}
                   >
                     {isLoading ? (
                       <>
@@ -271,6 +334,7 @@ export default function SignInPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
+                      onClick={handleGoogleSignIn}
                       className="border-border bg-secondary text-foreground hover:bg-secondary/80 flex items-center justify-center rounded-lg border px-4 py-2.5 text-sm shadow-sm"
                     >
                       <SiGoogle className="h-5 w-5" />

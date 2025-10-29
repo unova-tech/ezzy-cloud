@@ -47,10 +47,28 @@ export function all_succeeded<CheckName extends string>(checks: Record<CheckName
 export function get_checks<CheckName extends string>(checks: Record<CheckName, Check>): Check[] {
     return Object.values(checks)
 }
-export interface Resume {
-  name: string
-  email: string
-  experience: string[]
-  skills: string[]
+export interface TextElement {
+  tag: "text"
+  text: string
+  css?: string | null
   
 }
+
+export interface ViewElement {
+  tag: "view"
+  children: (TextElement | ViewElement)[]
+  css?: string | null
+  
+}
+
+export interface Wireframe {
+  elements: (TextElement | ViewElement)[]
+  
+}
+
+export interface Wireframes {
+  wireframes: Checked<Wireframe[],"more_than_3">
+  
+}
+
+export type Element = TextElement | ViewElement

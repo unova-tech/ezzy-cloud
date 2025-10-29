@@ -13,8 +13,10 @@ import {
 } from "lucide-react"
 import * as motion from "motion/react-client"
 import Image from "next/image"
-import { lazy, Suspense } from "react"
+import { Suspense } from "react"
 import favicon from "@/app/favicon.ico"
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
+import { HeroVideoDialog } from "@/components/ui/hero-video-dialog"
 import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
 import {
@@ -28,8 +30,7 @@ import { cn } from "../lib/utils"
 import BentoGridItem from "./components/bento-grid-item"
 import WaitListCount from "./components/waitlist-count"
 import WaitListForm from "./components/waitlist-form"
-
-const Demonstration = lazy(() => import("./components/demonstration"))
+import styles from "./page.module.css"
 
 export default function LandingPage() {
   const prices = [
@@ -151,6 +152,8 @@ export default function LandingPage() {
 
   return (
     <>
+      <AnimatedThemeToggler className="fixed top-4 right-4 z-50 p-2 rounded-lg bg-background/80 backdrop-blur-sm border border-border hover:bg-background transition-colors" />
+
       <main>
         <section
           id="hero"
@@ -187,7 +190,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="from-primary/10 via-foreground/85 to-foreground/50 bg-linear-to-tl bg-clip-text text-center text-4xl tracking-tighter text-balance text-transparent sm:text-5xl md:text-6xl lg:text-7xl"
               >
-                Coloque seu negócio no ar em minutos
+                Construa IAs verticais em minutos, não em meses
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -255,23 +258,23 @@ export default function LandingPage() {
                 id="demonstration"
                 style={{ scrollMarginTop: "10vh" }}
               >
-                <div className="border-border/40 bg-background/50 rounded-xl border shadow-xl backdrop-blur-sm">
-                  <div className="border-border/40 bg-muted/50 flex h-10 items-center border-b px-4">
-                    <div className="flex space-x-2">
-                      <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                      <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                      <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                    </div>
-                    <div className="bg-background/50 text-muted-foreground mx-auto flex items-center rounded-md px-3 py-1 text-xs">
-                      http://localhost:5678
-                    </div>
-                  </div>
-                  <div className="aspect-video relative overflow-hidden">
-                    <Suspense>
-                      <Demonstration />
-                    </Suspense>
-                  </div>
-                  <div className="from-background absolute inset-0 bg-linear-to-t to-transparent opacity-0 pointer-events-none"></div>
+                <div
+                  className={`border-border/40 bg-background/50 rounded-xl border shadow-xl backdrop-blur-sm overflow-hidden aspect-video relative ${styles.videoContainer}`}
+                >
+                  <HeroVideoDialog
+                    className="block dark:hidden"
+                    animationStyle="from-center"
+                    videoId="qh3NGpYRG3I"
+                    thumbnailSrc="https://startup-template-sage.vercel.app/hero-light.png"
+                    thumbnailAlt="Hero Video"
+                  />
+                  <HeroVideoDialog
+                    className="hidden dark:block"
+                    animationStyle="from-center"
+                    videoId="qh3NGpYRG3I"
+                    thumbnailSrc="https://startup-template-sage.vercel.app/hero-dark.png"
+                    thumbnailAlt="Hero Video"
+                  />
                 </div>
                 <div className="border-border/40 bg-background/80 absolute -top-6 -right-6 h-12 w-12 rounded-lg border p-3 shadow-lg backdrop-blur-md">
                   <div className="bg-primary/20 h-full w-full rounded-md"></div>
