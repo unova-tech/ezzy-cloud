@@ -1,6 +1,6 @@
+import * as SimpleIcons from "@icons-pack/react-simple-icons"
 import type { LucideIcon } from "lucide-react"
 import * as LucideIcons from "lucide-react"
-import * as SimpleIcons from "@icons-pack/react-simple-icons"
 
 /**
  * Icon definition that can be serialized
@@ -13,7 +13,9 @@ export type IconDefinition = {
 /**
  * Get icon component from icon definition
  */
-export function getIconComponent(icon: IconDefinition | string): React.ComponentType<{ className?: string }> | null {
+export function getIconComponent(
+  icon: IconDefinition | string
+): React.ComponentType<{ className?: string }> | null {
   // Handle old format (direct component) - return null to trigger fallback
   if (typeof icon === "function") {
     return null
@@ -25,24 +27,36 @@ export function getIconComponent(icon: IconDefinition | string): React.Component
   }
 
   // Handle icon definition
-  if (!icon || typeof icon !== "object" || !("library" in icon) || !("name" in icon)) {
+  if (
+    !icon ||
+    typeof icon !== "object" ||
+    !("library" in icon) ||
+    !("name" in icon)
+  ) {
     return null
   }
 
   try {
     if (icon.library === "lucide") {
       // Lucide icons: ArrowRightLeft, Play, etc.
-      const IconComponent = (LucideIcons as Record<string, LucideIcon>)[icon.name]
+      const IconComponent = (LucideIcons as Record<string, LucideIcon>)[
+        icon.name
+      ]
       return IconComponent || null
     }
 
     if (icon.library === "simple-icons") {
       // Simple Icons: SiJavascript, SiResend, etc.
-      const IconComponent = (SimpleIcons as Record<string, React.ComponentType>)[icon.name]
+      const IconComponent = (
+        SimpleIcons as Record<string, React.ComponentType>
+      )[icon.name]
       return IconComponent || null
     }
   } catch (error) {
-    console.error(`Failed to load icon ${icon.name} from ${icon.library}:`, error)
+    console.error(
+      `Failed to load icon ${icon.name} from ${icon.library}:`,
+      error
+    )
   }
 
   return null

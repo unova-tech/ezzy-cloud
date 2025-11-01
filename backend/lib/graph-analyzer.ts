@@ -1,10 +1,10 @@
-import type { Node, Edge } from "@xyflow/react"
+import type { Edge, Node } from "@xyflow/react"
 
 export interface AnalyzedNode {
   id: string
-  type: string  // semantic node type from nodeTypeData.name
-  componentType: string  // ReactFlow component type (e.g., 'base')
-  nodeKind: string  // nodeTypeData.nodeType (e.g., 'trigger', 'action', 'structural')
+  type: string // semantic node type from nodeTypeData.name
+  componentType: string // ReactFlow component type (e.g., 'base')
+  nodeKind: string // nodeTypeData.nodeType (e.g., 'trigger', 'action', 'structural')
   data: Record<string, unknown>
   isStructural: boolean
   category: "core" | "default-lib" | "external-lib"
@@ -54,7 +54,7 @@ export class GraphAnalyzer {
       edges: this.edges,
       entryPoint,
       hasLoops,
-      maxDepth,
+      maxDepth
     }
   }
 
@@ -113,7 +113,10 @@ export class GraphAnalyzer {
 
       const successors = this.getSuccessors(current)
       for (const successor of successors) {
-        if (!depths.has(successor) || depths.get(successor)! < currentDepth + 1) {
+        if (
+          !depths.has(successor) ||
+          depths.get(successor)! < currentDepth + 1
+        ) {
           depths.set(successor, currentDepth + 1)
           queue.push(successor)
         }
@@ -137,14 +140,14 @@ export class GraphAnalyzer {
 
     const analyzed: AnalyzedNode = {
       id: node.id,
-      type: nodeTypeData.name || "unknown",  // semantic type from nodeTypeData
-      componentType: node.type || "base",     // ReactFlow component type
-      nodeKind: nodeTypeData.nodeType || "unknown",  // trigger/action/structural
+      type: nodeTypeData.name || "unknown", // semantic type from nodeTypeData
+      componentType: node.type || "base", // ReactFlow component type
+      nodeKind: nodeTypeData.nodeType || "unknown", // trigger/action/structural
       data: node.data || {},
       isStructural,
       category,
       inputs,
-      outputs,
+      outputs
     }
 
     this.analyzed.set(node.id, analyzed)
@@ -152,15 +155,11 @@ export class GraphAnalyzer {
   }
 
   private getSuccessors(nodeId: string): string[] {
-    return this.edges
-      .filter((e) => e.source === nodeId)
-      .map((e) => e.target)
+    return this.edges.filter((e) => e.source === nodeId).map((e) => e.target)
   }
 
   private getPredecessors(nodeId: string): string[] {
-    return this.edges
-      .filter((e) => e.target === nodeId)
-      .map((e) => e.source)
+    return this.edges.filter((e) => e.target === nodeId).map((e) => e.source)
   }
 
   // Get execution order using topological sort
@@ -224,8 +223,8 @@ export class GraphAnalyzer {
             label: o.label,
             targets: this.edges
               .filter((e) => e.source === node.id && e.sourceHandle === o.id)
-              .map((e) => e.target),
-          })),
+              .map((e) => e.target)
+          }))
         }
       }
     }

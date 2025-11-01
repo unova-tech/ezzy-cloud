@@ -1,19 +1,19 @@
 "use client"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { CheckCircle2, KeyRound, Loader2 } from "lucide-react"
+import Link from "next/link"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import Link from "next/link"
-import { authClient } from "@/lib/auth-client"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, KeyRound, CheckCircle2 } from "lucide-react"
+import { authClient } from "@/lib/auth-client"
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().email("Please enter a valid email address")
 })
 
 type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>
@@ -27,9 +27,9 @@ export default function ForgotPasswordPage() {
     register,
     handleSubmit,
     formState: { errors },
-    getValues,
+    getValues
   } = useForm<ForgotPasswordForm>({
-    resolver: zodResolver(forgotPasswordSchema),
+    resolver: zodResolver(forgotPasswordSchema)
   })
 
   const onSubmit = async (data: ForgotPasswordForm) => {
@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
     try {
       const result = await authClient.forgetPassword({
         email: data.email,
-        redirectTo: "/reset-password",
+        redirectTo: "/reset-password"
       })
 
       if (result.error) {

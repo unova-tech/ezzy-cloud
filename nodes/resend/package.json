@@ -17,8 +17,12 @@
     }
   },
   "ezzy-cloud": {
-    "secrets": ["./secrets/apikey-secret.ts"],
-    "nodes": ["./nodes/send-email/definition.ts"]
+    "secrets": [
+      "./secrets/apikey-secret.ts"
+    ],
+    "nodes": [
+      "./nodes/send-email/definition.ts"
+    ]
   },
   "peerDependencies": {
     "typescript": "^5"

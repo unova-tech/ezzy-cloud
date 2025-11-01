@@ -11,13 +11,11 @@ const IfNode = {
   category: "core",
   isStructural: true,
   properties: z.object({
-    condition: z
-      .string()
-      .meta({
-        title: "Condition",
-        description: "JavaScript expression that evaluates to true or false",
-        field: "textarea"
-      })
+    condition: z.string().meta({
+      title: "Condition",
+      description: "JavaScript expression that evaluates to true or false",
+      field: "textarea"
+    })
   }),
   result: z.object({}),
   customOutputs: [

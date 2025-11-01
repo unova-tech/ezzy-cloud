@@ -239,8 +239,8 @@ z.number()
 // Boolean checkbox
 z.boolean()
 
-// Select dropdown
-z.enum(["option1", "option2", "option3"])
+// Select dropdown (requires field: "select" in meta)
+z.enum(["option1", "option2", "option3"]).meta({ field: "select" })
 
 // Array of strings
 z.array(z.string())
@@ -250,6 +250,54 @@ z.object({
   nested: z.string()
 })
 ```
+
+**Note**: See "Select Dropdown for Enums" section below for details on using dropdowns with enums.
+
+### Select Dropdown for Enums
+
+By default, `z.enum()` renders as a text input field. To render an enum as a dropdown/select component, add `field: "select"` to the `.meta()`:
+
+```typescript
+// Renderiza como dropdown/select
+z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]).meta({
+  field: "select",
+  title: "HTTP Method",
+  description: "Select the HTTP method"
+})
+```
+
+The custom `SelectWidget` automatically detects the `field: "select"` metadata and renders a shadcn/ui Select component with all enum options available in a dropdown.
+
+**Example**: See the `http-request` node (field `method` in `nodes/http-request/definition.ts`) for a real-world implementation.
+
+**Note on HTTP Request Node**: The `http-request` node supports common HTTP methods: GET, POST, PUT, DELETE, PATCH, HEAD, and OPTIONS. These cover the vast majority of API integration scenarios. The method field defaults to "GET" for convenience. Less common methods (TRACE, CONNECT) are intentionally excluded as they are rarely used in workflow automation contexts and may have security implications.
+
+### Dynamic Key-Value Lists
+
+For scenarios where users need to add/remove multiple key-value pairs (like HTTP headers, environment variables, or custom metadata), use the key-value array pattern:
+
+```typescript
+// Renderiza como lista dinâmica com botões add/remove
+z.array(
+  z.object({
+    key: z.string().meta({ title: "Header Name" }),
+    value: z.string().meta({ title: "Header Value" })
+  })
+).optional().meta({
+  title: "HTTP Headers",
+  description: "Custom headers to include in the request"
+})
+```
+
+The `KeyValueListWidget` automatically detects arrays with properties `key` and `value`, and renders an interactive list where:
+- Each row displays two fields (key and value) side by side
+- Users can add new rows with the "+" button
+- Users can remove rows with the delete button on each row
+- The list grows/shrinks dynamically based on user input
+
+**Example**: See the `http-request` node (field `headers` in `nodes/http-request/definition.ts`) for a real-world implementation.
+
+**Note**: This pattern is specifically designed for key-value pairs. For other types of dynamic arrays, use different object structures based on your needs.
 
 ### UI Metadata
 
@@ -300,6 +348,14 @@ z.object({
   )
 })
 
+// Key-value pairs (renders as dynamic list with add/remove buttons)
+z.array(
+  z.object({
+    key: z.string(),
+    value: z.string()
+  })
+)
+
 // Conditional fields
 z.object({
   type: z.enum(["simple", "advanced"]),
@@ -309,6 +365,34 @@ z.object({
   }).optional()
 })
 ```
+
+**Note**: See "Dynamic Key-Value Lists" section above for details on the key-value array pattern.
+
+### UI Widget Detection
+
+The system automatically detects which UI widget to use based on schema patterns and metadata. This detection is handled by `buildUiSchemaFromJsonSchema` in `web/src/lib/rjsf-config.ts`.
+
+**Detection Rules:**
+
+1. **Select Dropdown**: When an enum has `field: "select"` in metadata
+   - Schema pattern: `z.enum([...]).meta({ field: "select" })`
+   - Widget used: `SelectWidget` (shadcn/ui dropdown)
+
+2. **Dynamic Key-Value List**: When an array contains objects with `key` and `value` properties
+   - Schema pattern: `z.array(z.object({ key: z.string(), value: z.string() }))`
+   - Widget used: `KeyValueListWidget` (interactive list with add/remove)
+
+3. **Textarea**: When a string field has `field: "textarea"` in metadata
+   - Schema pattern: `z.string().meta({ field: "textarea" })`
+   - Widget used: Default textarea widget
+
+4. **Default Widgets**: All other fields use standard widgets based on Zod type
+   - `z.string()` → text input
+   - `z.number()` → number input
+   - `z.boolean()` → checkbox
+   - `z.enum()` (without field: "select") → text input with validation
+
+**For Developers**: When creating new UI patterns, add detection logic in the `buildUiSchemaFromJsonSchema` function to automatically map schema patterns to appropriate widgets.
 
 ## Creating Structural Nodes
 
@@ -551,6 +635,10 @@ expect(result.code).toContain("github-repo-info")
 
 ### Simple HTTP Request
 See: `nodes/http-request/`
+
+**Demonstrates**: 
+- `field: "select"` for method enum (dropdown selection)
+- Key-value array pattern for headers (dynamic list with add/remove buttons)
 
 ### Code Execution
 See: `nodes/code/`

@@ -20,7 +20,7 @@ const plugins = [
   twoFactorClient(),
   phoneNumberClient(),
   passkeyClient(),
-  lastLoginMethodClient(),
+  lastLoginMethodClient()
 ]
 
 // Only add oneTapClient if Google Client ID is configured

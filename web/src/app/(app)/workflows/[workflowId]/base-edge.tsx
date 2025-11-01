@@ -54,8 +54,11 @@ const CustomEdge = memo((props: EdgeProps<Edge<{ isHovered: boolean }>>) => {
   }, [id, setEdges])
 
   return (
-    <ButtonEdge {...props} style={{ filter: isHovered ? 'brightness(2)' : 'none' }}>
-      <div className={cn("flex gap-1", { "hidden": !isHovered })}>
+    <ButtonEdge
+      {...props}
+      style={{ filter: isHovered ? "brightness(2)" : "none" }}
+    >
+      <div className={cn("flex gap-1", { hidden: !isHovered })}>
         <Button
           onClick={onAddNode}
           size="icon"

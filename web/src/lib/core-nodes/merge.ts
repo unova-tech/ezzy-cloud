@@ -11,18 +11,20 @@ const MergeNode = {
   category: "core",
   isStructural: true,
   properties: z.object({
-    mode: z
-      .enum(["wait-all", "first"])
-      .meta({
-        title: "Mode",
-        description: "Wait for all branches or just the first to complete"
-      })
+    mode: z.enum(["wait-all", "first"]).meta({
+      title: "Mode",
+      description: "Wait for all branches or just the first to complete"
+    })
   }),
   result: z.object({
     inputs: z.array(z.any()).meta({ title: "Inputs from all branches" })
   }),
   // Supports dynamic multiple inputs
-  customInputs: [] as Array<{ id: string; label: string; type: "control" | "data" }>
+  customInputs: [] as Array<{
+    id: string
+    label: string
+    type: "control" | "data"
+  }>
 } as const satisfies INode
 
 export default MergeNode

@@ -1,4 +1,4 @@
-type LogLevel = 'info' | 'error' | 'debug' | 'warn'
+type LogLevel = "info" | "error" | "debug" | "warn"
 
 type LogEntry = {
   timestamp: number
@@ -20,26 +20,27 @@ export class Logger {
   }
 
   info(message: string, data?: any): void {
-    this.log('info', message, data)
-    console.log(`[INFO] ${message}`, data || '')
+    this.log("info", message, data)
+    console.log(`[INFO] ${message}`, data || "")
   }
 
   error(message: string, error?: Error | any): void {
-    const errorData = error instanceof Error 
-      ? { message: error.message, stack: error.stack }
-      : error
-    this.log('error', message, errorData)
-    console.error(`[ERROR] ${message}`, errorData || '')
+    const errorData =
+      error instanceof Error
+        ? { message: error.message, stack: error.stack }
+        : error
+    this.log("error", message, errorData)
+    console.error(`[ERROR] ${message}`, errorData || "")
   }
 
   debug(message: string, data?: any): void {
-    this.log('debug', message, data)
-    console.debug(`[DEBUG] ${message}`, data || '')
+    this.log("debug", message, data)
+    console.debug(`[DEBUG] ${message}`, data || "")
   }
 
   warn(message: string, data?: any): void {
-    this.log('warn', message, data)
-    console.warn(`[WARN] ${message}`, data || '')
+    this.log("warn", message, data)
+    console.warn(`[WARN] ${message}`, data || "")
   }
 
   private log(level: LogLevel, message: string, data?: any): void {

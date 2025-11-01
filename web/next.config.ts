@@ -22,10 +22,7 @@ const nextConfig: NextConfig = {
       }
     }
   },
-  serverExternalPackages: [
-    "import-in-the-middle",
-    "require-in-the-middle"
-  ]
+  serverExternalPackages: ["import-in-the-middle", "require-in-the-middle"]
 }
 
 export default withSentryConfig(nextConfig, {

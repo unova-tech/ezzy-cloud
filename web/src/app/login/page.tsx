@@ -21,7 +21,7 @@ import {
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import Script from "next/script"
-import { useState, useRef } from "react"
+import { useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import * as v from "valibot"
 import { authClient } from "../../lib/auth-client"
@@ -29,14 +29,14 @@ import publicConfig from "../../lib/public-config"
 
 const loginSchema = v.object({
   email: v.pipe(v.string(), v.minLength(1)),
-  password: v.pipe(v.string(), v.minLength(1)),
+  password: v.pipe(v.string(), v.minLength(1))
 })
 
 type LoginFormData = v.InferInput<typeof loginSchema>
 
 export default function SignInPage() {
   const searchParams = useSearchParams()
-  
+
   const {
     register,
     handleSubmit,
@@ -52,52 +52,54 @@ export default function SignInPage() {
   const [turnstileToken, setTurnstileToken] = useState<string>("")
   const turnstileTokenRef = useRef<string>("")
 
-  const onSubmit = handleSubmit(
-    async ({ email, password }) => {
-      const token = turnstileTokenRef.current
-      console.log("Form submitted", { email, hasTurnstile: !!token, token: token.substring(0, 20) + "..." })
-      
-      if (!token) {
-        setError("Please complete the CAPTCHA verification")
-        return
-      }
-      
-      setError(null)
-      setIsLoading(true)
-      try {
-        const redirectTo = searchParams.get("redirect_to") || "/dashboard"
-        
-        const result = await authClient.signIn.email({
-          email,
-          password,
-          callbackURL: redirectTo,
-          fetchOptions: {
-            headers: {
-              "x-captcha-response": token
-            }
-          }
-        })
+  const onSubmit = handleSubmit(async ({ email, password }) => {
+    const token = turnstileTokenRef.current
+    console.log("Form submitted", {
+      email,
+      hasTurnstile: !!token,
+      token: token.substring(0, 20) + "..."
+    })
 
-        console.log("Sign in result:", result)
-
-        if (result.error) {
-          setError(result.error.message || "Failed to sign in")
-        }
-        // Better Auth handles the redirect automatically via callbackURL
-      } catch (err) {
-        console.error("Sign in error:", err)
-        setError("An unexpected error occurred")
-      } finally {
-        setIsLoading(false)
-      }
+    if (!token) {
+      setError("Please complete the CAPTCHA verification")
+      return
     }
-  )
+
+    setError(null)
+    setIsLoading(true)
+    try {
+      const redirectTo = searchParams.get("redirect_to") || "/workflows"
+
+      const result = await authClient.signIn.email({
+        email,
+        password,
+        callbackURL: redirectTo,
+        fetchOptions: {
+          headers: {
+            "x-captcha-response": token
+          }
+        }
+      })
+
+      console.log("Sign in result:", result)
+
+      if (result.error) {
+        setError(result.error.message || "Failed to sign in")
+      }
+      // Better Auth handles the redirect automatically via callbackURL
+    } catch (err) {
+      console.error("Sign in error:", err)
+      setError("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  })
 
   const handleGoogleSignIn = async () => {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/dashboard"
+        callbackURL: "/workflows"
       })
     } catch (err) {
       setError("Failed to sign in with Google")
@@ -234,7 +236,9 @@ export default function SignInPage() {
                       />
                     </div>
                     {errors.email && (
-                      <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
+                      <p className="text-sm text-destructive mt-1">
+                        {errors.email.message}
+                      </p>
                     )}
                   </div>
 
@@ -273,7 +277,9 @@ export default function SignInPage() {
                       </button>
                     </div>
                     {errors.password && (
-                      <p className="text-sm text-destructive mt-1">{errors.password.message}</p>
+                      <p className="text-sm text-destructive mt-1">
+                        {errors.password.message}
+                      </p>
                     )}
                   </div>
 
@@ -298,13 +304,14 @@ export default function SignInPage() {
                       injectScript={false}
                       siteKey={publicConfig.TURNSTILE_SITE_KEY}
                       onSuccess={(token) => {
-                        console.log("Turnstile success, token:", token)
                         setTurnstileToken(token)
                         turnstileTokenRef.current = token
                       }}
                       onError={(error) => {
                         console.error("Turnstile error:", error)
-                        setError("CAPTCHA verification failed. Please try again.")
+                        setError(
+                          "CAPTCHA verification failed. Please try again."
+                        )
                       }}
                     />
                   </div>
@@ -352,7 +359,10 @@ export default function SignInPage() {
 
                 <div className="text-muted-foreground mt-8 text-center text-sm">
                   Don&apos;t have an account?{" "}
-                  <Link href="/register" className="text-primary hover:text-primary/80">
+                  <Link
+                    href="/register"
+                    className="text-primary hover:text-primary/80"
+                  >
                     Sign up for free
                   </Link>
                 </div>

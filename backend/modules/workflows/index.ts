@@ -192,6 +192,69 @@ export const workflowsModule = new Elysia({ prefix: "/workflows" })
     }
   )
 
+  // Clone a workflow
+  .post(
+    "/:id/clone",
+    async ({ params, user }) => {
+      const { id } = params
+
+      // Query the source workflow and verify ownership
+      const sourceWorkflow = await db
+        .select()
+        .from(workflows)
+        .where(and(eq(workflows.id, id), eq(workflows.userId, user.id)))
+        .limit(1)
+
+      if (sourceWorkflow.length === 0) {
+        return {
+          success: false,
+          error: "Workflow not found"
+        }
+      }
+
+      // Extract the source workflow data
+      const source = sourceWorkflow[0]
+      if (!source) {
+        return {
+          success: false,
+          error: "Workflow not found"
+        }
+      }
+
+      // Create the cloned workflow name
+      const clonedName = `${source.name} (Copy)`
+
+      // Deep-copy nodes and edges to prevent unintended mutation
+      const clonedNodes = JSON.parse(JSON.stringify(source.nodes))
+      const clonedEdges = JSON.parse(JSON.stringify(source.edges))
+
+      // Insert new workflow record
+      const clonedWorkflow = await db
+        .insert(workflows)
+        .values({
+          userId: user.id,
+          name: clonedName,
+          description: source.description,
+          nodes: clonedNodes,
+          edges: clonedEdges,
+          compiledCode: null,
+          isPublished: false
+        })
+        .returning()
+
+      return {
+        success: true,
+        workflow: clonedWorkflow[0]
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String()
+      }),
+      auth: true
+    }
+  )
+
   // Compile a workflow
   .post(
     "/:id/compile",

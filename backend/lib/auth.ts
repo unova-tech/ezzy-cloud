@@ -33,12 +33,15 @@ export const auth = betterAuth({
     emailOTP({
       sendVerificationOTP: async ({ email, type, otp }) => {
         console.log(`Sending OTP ${otp} to user ${email} for ${type}`)
-        
+
         try {
           await resend.emails.send({
             from: process.env.MAIL_FROM || "Ezzy Cloud <noreply@ezzycloud.com>",
             to: email,
-            subject: type === "sign-in" ? "Sign in to Ezzy Cloud" : "Verify your email",
+            subject:
+              type === "sign-in"
+                ? "Sign in to Ezzy Cloud"
+                : "Verify your email",
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2>Your verification code</h2>
@@ -51,7 +54,7 @@ export const auth = betterAuth({
               </div>
             `
           })
-          
+
           console.log(`OTP email sent successfully to ${email}`)
         } catch (error) {
           console.error("Failed to send OTP email:", error)

@@ -1,15 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { Calendar, Loader2, LogOut, Mail, Trash2, User } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
-import { authClient } from "@/lib/auth-client"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -17,9 +19,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from "@/components/ui/dialog"
-import { Loader2, User, Mail, Calendar, LogOut, Trash2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { authClient } from "@/lib/auth-client"
+import { useAuth } from "@/lib/auth-context"
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth()
@@ -40,7 +46,7 @@ export default function ProfilePage() {
 
     try {
       const result = await authClient.updateUser({
-        name,
+        name
       })
 
       if (result.error) {
@@ -81,7 +87,7 @@ export default function ProfilePage() {
     return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
-      day: "numeric",
+      day: "numeric"
     })
   }
 
@@ -113,9 +119,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle>Profile Information</CardTitle>
-            <CardDescription>
-              Update your personal information
-            </CardDescription>
+            <CardDescription>Update your personal information</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -182,9 +186,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle>Account Details</CardTitle>
-            <CardDescription>
-              Information about your account
-            </CardDescription>
+            <CardDescription>Information about your account</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
@@ -219,9 +221,12 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Button variant="outline" onClick={() => {
-                window.location.href = "/forgot-password"
-              }}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  window.location.href = "/forgot-password"
+                }}
+              >
                 Change Password
               </Button>
             </div>
@@ -253,9 +258,13 @@ export default function ProfilePage() {
             <div>
               <h3 className="text-sm font-medium mb-2">Delete Account</h3>
               <p className="text-xs text-muted-foreground mb-3">
-                Once you delete your account, there is no going back. Please be certain.
+                Once you delete your account, there is no going back. Please be
+                certain.
               </p>
-              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <Dialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button variant="destructive">
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -266,9 +275,9 @@ export default function ProfilePage() {
                   <DialogHeader>
                     <DialogTitle>Are you absolutely sure?</DialogTitle>
                     <DialogDescription>
-                      This action cannot be undone. This will permanently delete your
-                      account and remove all your data from our servers, including all
-                      workflows, executions, and settings.
+                      This action cannot be undone. This will permanently delete
+                      your account and remove all your data from our servers,
+                      including all workflows, executions, and settings.
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>

@@ -1,4 +1,7 @@
 "use client"
+import type { IChangeEvent } from "@rjsf/core"
+import Form from "@rjsf/shadcn"
+import type { RJSFSchema } from "@rjsf/utils"
 import {
   addEdge,
   Background,
@@ -22,10 +25,11 @@ import defaultNodesLib from "core-nodes"
 import { useParams, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import type { INode } from "node-base"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
-import { z } from "zod"
 import { DevTools } from "@/components/devtools"
+import { FieldTemplate } from "@/components/rjsf/templates"
+import { customFields, customWidgets } from "@/components/rjsf/widgets"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -45,9 +49,14 @@ import {
   SheetTitle
 } from "@/components/ui/sheet"
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { Textarea } from "@/components/ui/textarea"
-import { coreNodes as coreNodesLib } from "@/lib/core-nodes"
+import {
+  useCompileWorkflow,
+  useSaveWorkflow,
+  useWorkflow
+} from "@/hooks/use-workflows"
+import coreNodesLib from "@/lib/core-nodes"
 import { getIconComponent, type IconDefinition } from "@/lib/icon-registry"
+import { buildUiSchemaFromJsonSchema, validator, zodToJsonSchema } from "@/lib/rjsf-config"
 import BaseEdge from "./base-edge"
 import BaseNode from "./base-node"
 import { NodeProvider } from "./node-context"
@@ -58,9 +67,24 @@ import "@xyflow/react/dist/style.css"
 import "./style.css"
 
 // Combine core nodes and default lib nodes
-const { nodes: coreNodes } = coreNodesLib
+const coreNodes = coreNodesLib
 const { nodes: defaultNodes } = defaultNodesLib
 const allNodes = [...coreNodes, ...defaultNodes]
+
+// Create a map of node types to their JSON Schema definitions (computed once)
+const nodeSchemaMap = new Map<
+  string,
+  {
+    node: INode
+    propertiesSchema: RJSFSchema
+  }
+>(
+  allNodes.map((node) => {
+    // Convert Zod schema to JSON Schema once, removing $schema property
+    const propertiesSchema = zodToJsonSchema(node.properties)
+    return [node.name, { node, propertiesSchema }]
+  })
+)
 
 // Group nodes by category
 const groupedNodes = allNodes.reduce(
@@ -75,99 +99,29 @@ const groupedNodes = allNodes.reduce(
   {} as Record<string, INode[]>
 )
 
-// Tipo para JSON Schema
-type JSONSchema = {
-  type?: string
-  title?: string
-  description?: string
-  default?: unknown
-  properties?: Record<string, JSONSchema>
+// Simplified node metadata for UI (hydrated from node registry)
+type NodeMetadata = {
+  name: string
+  title: string
+  description: string
+  icon: React.ComponentType<{ className?: string }> | IconDefinition
+  nodeType: "trigger" | "action"
+  propertiesSchema: RJSFSchema
+  customOutputs?: Array<{
+    id: string
+    label: string
+    type?: "control" | "data"
+  }>
+  customInputs?: Array<{ id: string; label: string; type?: "control" | "data" }>
 }
 
-// Tipo para dados do node
+// Tipo para dados do node (only persisted data)
 type NodeData = {
-  nodeTypeData?: INode
+  type: string // Node type identifier (e.g., "code", "http-request")
   label?: string
   properties?: Record<string, unknown>
-}
-
-// Componente helper para renderizar campos dinamicamente
-function DynamicFormField({
-  name,
-  schema,
-  value,
-  onChange,
-  onSubmit
-}: {
-  name: string
-  schema: z.ZodTypeAny
-  value: unknown
-  onChange: (value: unknown) => void
-  onSubmit?: () => void
-}) {
-  const jsonSchema = z.toJSONSchema(schema) as JSONSchema
-
-  // Extrai metadados personalizados do schema
-  const metadata = schema.meta?.() as { field?: string } | undefined
-  const fieldType = metadata?.field || "text"
-
-  // Verifica se o campo é obrigatório
-  const isOptional = schema.safeParse(undefined).success
-  const isRequired = !isOptional
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={name}>
-        {jsonSchema.title || name}
-        {isRequired && <span className="text-red-500 ml-1">*</span>}
-        {jsonSchema.description && (
-          <span className="text-xs text-muted-foreground ml-2">
-            {jsonSchema.description}
-          </span>
-        )}
-      </Label>
-      {fieldType === "textarea" ? (
-        <Textarea
-          id={name}
-          value={(value as string) || ""}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            // Ctrl+Enter ou Cmd+Enter submete o formulário
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && onSubmit) {
-              e.preventDefault()
-              onSubmit()
-            }
-          }}
-          placeholder={(jsonSchema.default as string) || ""}
-          rows={5}
-          required={isRequired}
-        />
-      ) : (
-        <Input
-          id={name}
-          type={
-            jsonSchema.type === "number"
-              ? "number"
-              : jsonSchema.type === "boolean"
-                ? "checkbox"
-                : "text"
-          }
-          value={(value as string) || ""}
-          onChange={(e) => {
-            const val =
-              jsonSchema.type === "number"
-                ? Number(e.target.value)
-                : jsonSchema.type === "boolean"
-                  ? e.target.checked
-                  : e.target.value
-            onChange(val)
-          }}
-          placeholder={(jsonSchema.default as string) || ""}
-          required={isRequired}
-        />
-      )}
-    </div>
-  )
+  // Hydrated at runtime (not saved to backend)
+  _metadata?: NodeMetadata
 }
 
 const initialNodes: Node[] = []
@@ -207,11 +161,69 @@ function sanitizeEdges(edges: Edge[]): Edge[] {
   })
 }
 
-// Utility function to sanitize nodes by removing UI-only fields
+// Utility function to hydrate nodes with metadata when loading from backend
+function hydrateNodes(nodes: Node[]): Node[] {
+  return nodes.map((node) => {
+    const nodeData = node.data as NodeData
+
+    // If already hydrated, skip
+    if (nodeData._metadata) {
+      return node
+    }
+
+    // Get node type identifier
+    const nodeType = nodeData.type
+
+    if (!nodeType) {
+      console.warn("Node missing type identifier:", node)
+      return node
+    }
+
+    // Look up node definition and pre-computed schema
+    const nodeInfo = nodeSchemaMap.get(nodeType)
+
+    if (!nodeInfo) {
+      console.warn(`No definition found for node type: ${nodeType}`, node)
+      return node
+    }
+
+    // Hydrate with metadata
+    const metadata: NodeMetadata = {
+      name: nodeInfo.node.name,
+      title: nodeInfo.node.title,
+      description: nodeInfo.node.description,
+      icon: nodeInfo.node.icon,
+      nodeType: nodeInfo.node.nodeType,
+      propertiesSchema: nodeInfo.propertiesSchema,
+      customOutputs: nodeInfo.node.customOutputs,
+      customInputs: nodeInfo.node.customInputs
+    }
+
+    return {
+      ...node,
+      data: {
+        ...nodeData,
+        _metadata: metadata
+      }
+    }
+  })
+}
+
+// Utility function to sanitize nodes by removing runtime-only fields before saving
 function sanitizeNodes(nodes: Node[]): Node[] {
-  // IconDefinitions são serializáveis (objetos com library e name)
-  // Não precisamos fazer conversão especial
-  return nodes
+  return nodes.map((node) => {
+    const nodeData = node.data as NodeData
+
+    return {
+      ...node,
+      data: {
+        type: nodeData.type,
+        label: nodeData.label,
+        properties: nodeData.properties
+        // _metadata is intentionally omitted (runtime-only)
+      }
+    }
+  })
 }
 
 // Create a sanitized snapshot for comparison
@@ -236,10 +248,6 @@ function FlowContent() {
     properties: Record<string, unknown>
   } | null>(null)
   const [workflowName, setWorkflowName] = useState("Untitled Workflow")
-  const [isSaving, setIsSaving] = useState(false)
-  const [isCompiling, setIsCompiling] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
   const [showNameDialog, setShowNameDialog] = useState(false)
   const [tempWorkflowName, setTempWorkflowName] = useState("")
   const [lastSavedState, setLastSavedState] = useState<{
@@ -250,6 +258,13 @@ function FlowContent() {
   // This state will be used by the top bar to show unsaved changes badge
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const { screenToFlowPosition } = useReactFlow()
+  // biome-ignore lint/suspicious/noExplicitAny: RJSF Form ref type is complex
+  const formRef = useRef<any>(null)
+
+  // Custom hooks for React Query
+  const workflowQuery = useWorkflow(workflowId)
+  const saveMutation = useSaveWorkflow()
+  const compileMutation = useCompileWorkflow()
 
   // Estado para armazenar informações de conexão pendente
   const [pendingConnection, setPendingConnection] = useState<{
@@ -267,54 +282,42 @@ function FlowContent() {
 
   // Load workflow data if editing existing workflow
   useEffect(() => {
-    const loadWorkflow = async () => {
-      if (workflowId !== "new") {
-        try {
-          const response = await fetch(`/api/workflows/${workflowId}`)
-          const result = await response.json()
+    if (workflowId === "new") {
+      setLastSavedState({
+        nodes: [],
+        edges: [],
+        name: "Untitled Workflow"
+      })
+    } else if (workflowQuery.isSuccess && workflowQuery.data) {
+      const hydratedNodes = hydrateNodes(workflowQuery.data.nodes || [])
+      const sanitizedEdges = sanitizeEdges(workflowQuery.data.edges || [])
+      const loadedName = workflowQuery.data.name || "Untitled Workflow"
 
-          if (result.success && result.workflow) {
-            const sanitizedNodes = sanitizeNodes(result.workflow.nodes || [])
-            const sanitizedEdges = sanitizeEdges(result.workflow.edges || [])
-            const loadedName = result.workflow.name || "Untitled Workflow"
-
-            setWorkflowName(loadedName)
-            setNodes(sanitizedNodes)
-            setEdges(sanitizedEdges)
-            setLastSavedState({
-              nodes: sanitizedNodes,
-              edges: sanitizedEdges,
-              name: loadedName
-            })
-            setLoadError(false)
-          } else {
-            toast.error("Error", {
-              description: "Failed to load workflow"
-            })
-            setLoadError(true)
-          }
-        } catch (error) {
-          toast.error("Error", {
-            description:
-              error instanceof Error ? error.message : "Failed to load workflow"
-          })
-          setLoadError(true)
-        } finally {
-          setIsLoading(false)
-        }
-      } else {
-        setLastSavedState({
-          nodes: [],
-          edges: [],
-          name: "Untitled Workflow"
-        })
-        setLoadError(false)
-        setIsLoading(false)
-      }
+      setWorkflowName(loadedName)
+      setNodes(hydratedNodes)
+      setEdges(sanitizedEdges)
+      setLastSavedState({
+        nodes: hydratedNodes,
+        edges: sanitizedEdges,
+        name: loadedName
+      })
     }
+  }, [
+    workflowId,
+    workflowQuery.isSuccess,
+    workflowQuery.data,
+    setNodes,
+    setEdges
+  ])
 
-    loadWorkflow()
-  }, [workflowId, setNodes, setEdges])
+  // Show error toast when workflow fails to load
+  useEffect(() => {
+    if (workflowQuery.isError && workflowQuery.error) {
+      toast.error("Error", {
+        description: workflowQuery.error.message || "Failed to load workflow"
+      })
+    }
+  }, [workflowQuery.isError, workflowQuery.error])
 
   // Detect changes by comparing current state with last saved state
   useEffect(() => {
@@ -345,18 +348,93 @@ function FlowContent() {
 
   // Atualiza o estado de edição quando um node é selecionado
   useEffect(() => {
-    if (selectedNode) {
-      setEditingNodeData({
-        label:
-          selectedNode.data.label ||
-          selectedNode.data.nodeTypeData?.title ||
-          "",
-        properties: selectedNode.data.properties || {}
-      })
-    } else {
+    if (!selectedNode) {
       setEditingNodeData(null)
+      return
     }
-  }, [selectedNode])
+
+    const nodeData = selectedNode.data as NodeData
+
+    console.log(
+      "Selected node:",
+      selectedNode.id,
+      "has metadata:",
+      !!nodeData._metadata,
+      "type:",
+      nodeData.type
+    )
+
+    // If metadata is missing, try to hydrate it on-the-fly
+    if (!nodeData._metadata && nodeData.type) {
+      console.log("Hydrating metadata for node type:", nodeData.type)
+      const nodeInfo = nodeSchemaMap.get(nodeData.type)
+
+      if (nodeInfo) {
+        const metadata: NodeMetadata = {
+          name: nodeInfo.node.name,
+          title: nodeInfo.node.title,
+          description: nodeInfo.node.description,
+          icon: nodeInfo.node.icon,
+          nodeType: nodeInfo.node.nodeType,
+          propertiesSchema: nodeInfo.propertiesSchema,
+          customOutputs: nodeInfo.node.customOutputs,
+          customInputs: nodeInfo.node.customInputs
+        }
+
+        console.log(
+          "Metadata created:",
+          metadata.title,
+          "Schema:",
+          metadata.propertiesSchema
+        )
+
+        // Update the node with metadata immediately
+        const updatedData = {
+          ...nodeData,
+          _metadata: metadata
+        }
+
+        // Update in nodes array
+        setNodes((nds) =>
+          nds.map((node) =>
+            node.id === selectedNode.id
+              ? {
+                  ...node,
+                  data: updatedData
+                }
+              : node
+          )
+        )
+
+        // Update selectedNode to trigger re-render with metadata
+        setSelectedNode({
+          ...selectedNode,
+          data: updatedData
+        })
+
+        return // Let the next render cycle handle setting editingNodeData
+      } else {
+        console.error(
+          "No nodeInfo found for type:",
+          nodeData.type,
+          "Available types:",
+          Array.from(nodeSchemaMap.keys())
+        )
+      }
+    }
+
+    // Set editing data (this runs when metadata is already present)
+    console.log(
+      "Setting editing data, metadata:",
+      nodeData._metadata?.title,
+      "properties:",
+      nodeData.properties
+    )
+    setEditingNodeData({
+      label: nodeData.label || nodeData._metadata?.title || "",
+      properties: nodeData.properties || {}
+    })
+  }, [selectedNode, setNodes]) // Depend on full selectedNode object
 
   const onConnect: OnConnect = useCallback(
     (params) => setEdges((eds) => addEdge({ ...params, type: "base" }, eds)),
@@ -365,31 +443,19 @@ function FlowContent() {
 
   // Shared save logic to avoid duplication
   const saveWorkflow = async (name: string) => {
-    setIsSaving(true)
-    try {
-      const isNewWorkflow = workflowId === "new"
-      const url = isNewWorkflow
-        ? "/api/workflows"
-        : `/api/workflows/${workflowId}`
-      const method = isNewWorkflow ? "POST" : "PUT"
+    const isNewWorkflow = workflowId === "new"
 
-      // Sanitize data before saving
-      const sanitizedNodes = sanitizeNodes(nodes)
-      const sanitizedEdges = sanitizeEdges(edges)
+    // Sanitize data before saving
+    const sanitizedNodes = sanitizeNodes(nodes)
+    const sanitizedEdges = sanitizeEdges(edges)
 
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          nodes: sanitizedNodes,
-          edges: sanitizedEdges
-        })
-      })
+    const params = isNewWorkflow
+      ? { name, nodes: sanitizedNodes, edges: sanitizedEdges }
+      : { id: workflowId, name, nodes: sanitizedNodes, edges: sanitizedEdges }
 
-      const result = await response.json()
-
-      if (result.success) {
+    saveMutation
+      .mutateAsync(params)
+      .then((result) => {
         toast.success("Workflow saved", {
           description: "Your workflow has been saved successfully."
         })
@@ -402,26 +468,25 @@ function FlowContent() {
         })
         setHasUnsavedChanges(false)
 
-        // If this was a new workflow, navigate to the workflow's URL
-        if (isNewWorkflow && result.workflow?.id) {
-          router.push(`/workflows/${result.workflow.id}`)
+        // If this was a new workflow, navigate to the workflow's URL without reload
+        if (isNewWorkflow && result?.id) {
+          router.replace(`/workflows/${result.id}`)
         }
-      } else {
-        throw new Error(result.error || "Failed to save workflow")
-      }
-    } catch (error) {
-      toast.error("Error", {
-        description:
-          error instanceof Error ? error.message : "Failed to save workflow"
       })
-    } finally {
-      setIsSaving(false)
-    }
+      .catch((error) => {
+        toast.error("Error", {
+          description:
+            error instanceof Error ? error.message : "Failed to save workflow"
+        })
+      })
   }
 
   const handleSaveWorkflow = async () => {
     // Guard against saving after load failure
-    if (workflowId !== "new" && (loadError || lastSavedState === null)) {
+    if (
+      workflowId !== "new" &&
+      (workflowQuery.isError || lastSavedState === null)
+    ) {
       toast.error("Error", {
         description: "Cannot save workflow that failed to load"
       })
@@ -465,39 +530,36 @@ function FlowContent() {
   }
 
   const handleCompileWorkflow = async () => {
-    setIsCompiling(true)
-    try {
-      // Compila localmente sem precisar salvar
-      // Para isso, precisamos de uma rota que aceite nodes e edges diretamente
-      const response = await fetch("/api/workflows/compile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nodes,
-          edges
+    const sanitizedNodes = sanitizeNodes(nodes)
+    const sanitizedEdges = sanitizeEdges(edges)
+
+    compileMutation
+      .mutateAsync({ nodes: sanitizedNodes, edges: sanitizedEdges })
+      .then((result) => {
+        if (result.success) {
+          toast.success("Workflow compiled", {
+            description: "Your workflow has been compiled successfully."
+          })
+          console.log("Compiled code:", result.code)
+
+          // Optionally show warnings if present
+          if (result.warnings && result.warnings.length > 0) {
+            console.warn("Compilation warnings:", result.warnings)
+          }
+        } else {
+          toast.error("Compilation failed", {
+            description: result.error || "Failed to compile workflow"
+          })
+        }
+      })
+      .catch((error) => {
+        toast.error("Error", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to compile workflow"
         })
       })
-
-      const result = await response.json()
-
-      if (result.success) {
-        toast.success("Workflow compiled", {
-          description: "Your workflow has been compiled successfully."
-        })
-        console.log("Compiled code:", result.code)
-      } else {
-        toast.error("Compilation failed", {
-          description: result.error || "Failed to compile workflow"
-        })
-      }
-    } catch (error) {
-      toast.error("Error", {
-        description:
-          error instanceof Error ? error.message : "Failed to compile workflow"
-      })
-    } finally {
-      setIsCompiling(false)
-    }
   }
 
   const addNode = useCallback(
@@ -510,12 +572,35 @@ function FlowContent() {
           y: window.innerHeight / 2
         })
 
+      // Get pre-computed schema
+      const nodeInfo = nodeSchemaMap.get(nodeDefinition.name)
+
+      if (!nodeInfo) {
+        console.error(
+          `Cannot create node: ${nodeDefinition.name} not found in schema map`
+        )
+        return
+      }
+
+      // Create metadata
+      const metadata: NodeMetadata = {
+        name: nodeInfo.node.name,
+        title: nodeInfo.node.title,
+        description: nodeInfo.node.description,
+        icon: nodeInfo.node.icon,
+        nodeType: nodeInfo.node.nodeType,
+        propertiesSchema: nodeInfo.propertiesSchema,
+        customOutputs: nodeInfo.node.customOutputs,
+        customInputs: nodeInfo.node.customInputs
+      }
+
       const newNode: Node<NodeData> = {
         id: `node-${Date.now()}`,
         type: "base",
         position: nodePosition,
         data: {
-          nodeTypeData: nodeDefinition
+          type: nodeDefinition.name, // Persist type identifier
+          _metadata: metadata // Hydrated metadata
         }
       }
 
@@ -589,7 +674,7 @@ function FlowContent() {
     setShowNodePalette
   }
 
-  if (isLoading) {
+  if (workflowQuery.isLoading && workflowId !== "new") {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <div className="text-muted-foreground">Loading workflow...</div>
@@ -606,13 +691,13 @@ function FlowContent() {
         onSave={handleSaveWorkflow}
         onCompile={handleCompileWorkflow}
         onAddNode={() => setShowNodePalette(true)}
-        isSaving={isSaving}
-        isCompiling={isCompiling}
-        loadError={loadError}
+        isSaving={saveMutation.isPending}
+        isCompiling={compileMutation.isPending}
+        loadError={workflowQuery.isError}
       />
 
       {/* React Flow Canvas */}
-      <div className="flex-1 min-h-0 border-2 border-border rounded-tl-4xl overflow-hidden">
+      <div className="flex-1 min-h-0 border-t-2 border-l-2 border-border rounded-tl-4xl overflow-hidden">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -621,7 +706,7 @@ function FlowContent() {
           onConnect={onConnect}
           onNodeDrag={onNodeDrag}
           onNodeClick={(_, node) => setSelectedNode(node as Node<NodeData>)}
-          connectionLineType={ConnectionLineType.SmoothStep}
+          connectionLineType={ConnectionLineType.Bezier}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
@@ -656,7 +741,7 @@ function FlowContent() {
                 : "Choose a node to add to your workflow"}
             </SheetDescription>
           </SheetHeader>
-          <div className="mt-6 space-y-6 px-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+          <div className="mt-6 space-y-6 p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
             {(Object.entries(groupedNodes) as Array<[string, INode[]]>).map(
               ([category, nodes]) => (
                 <div key={category}>
@@ -713,40 +798,95 @@ function FlowContent() {
         open={selectedNode !== null}
         onOpenChange={(open) => !open && setSelectedNode(null)}
       >
-        <SheetContent className="w-[400px] sm:w-[540px] px-4">
+        <SheetContent className="w-[400px] sm:w-[540px] p-4 overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Edit Node Properties</SheetTitle>
             <SheetDescription>
-              {selectedNode?.data?.nodeTypeData?.title || "Configure your node"}
+              {(selectedNode?.data as NodeData)?._metadata?.title ||
+                "Configure your node"}
             </SheetDescription>
           </SheetHeader>
-          {selectedNode?.data?.nodeTypeData && editingNodeData && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                // Aplica as mudanças ao node real
-                setNodes((nds) =>
-                  nds.map((node) =>
-                    node.id === selectedNode.id
-                      ? {
-                          ...node,
-                          data: {
-                            ...node.data,
-                            label: editingNodeData.label,
-                            properties: editingNodeData.properties
-                          }
-                        }
-                      : node
-                  )
-                )
-                setSelectedNode(null)
+          {(selectedNode?.data as NodeData)?._metadata && editingNodeData && (
+            // biome-ignore lint/a11y: Need interactive div for form keyboard shortcuts
+            <div
+              role="form"
+              onKeyDown={(e) => {
+                // Ctrl+Enter ou Cmd+Enter submete o formulário
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                  e.preventDefault()
+                  formRef.current?.submit()
+                }
               }}
               className="mt-6 space-y-4 px-1"
             >
+              {/* Campo Label (mantido) */}
+              <div className="space-y-2">
+                <Label htmlFor="node-label">Label</Label>
+                <Input
+                  id="node-label"
+                  value={editingNodeData.label}
+                  onChange={(e) => {
+                    setEditingNodeData({
+                      ...editingNodeData,
+                      label: e.target.value
+                    })
+                  }}
+                />
+              </div>
+
+              {/* Divisor e propriedades do node */}
               {(() => {
-                // Função para submeter o formulário
-                const handleSubmit = () => {
-                  // Aplica as mudanças ao node real
+                if (!selectedNode) return null
+
+                const nodeData = selectedNode.data as NodeData
+                const metadata = nodeData._metadata
+
+                if (!metadata) return null
+
+                // Use pre-computed JSON Schema
+                const jsonSchema = metadata.propertiesSchema
+
+                // Check if node has properties
+                const hasProperties =
+                  jsonSchema.type === "object" &&
+                  jsonSchema.properties &&
+                  Object.keys(jsonSchema.properties).length > 0
+
+                // If no properties, don't render this section at all
+                if (!hasProperties) return null
+
+                // Generate uiSchema dynamically
+                const uiSchema = buildUiSchemaFromJsonSchema(jsonSchema)
+
+                // Ensure formData has default values from schema
+                const formDataWithDefaults = editingNodeData.properties || {}
+
+                // Apply defaults from schema if properties are missing
+                if (jsonSchema.properties) {
+                  for (const [key, prop] of Object.entries(
+                    jsonSchema.properties
+                  )) {
+                    const schemaProp = prop as RJSFSchema
+                    if (
+                      formDataWithDefaults[key] === undefined &&
+                      schemaProp.default !== undefined
+                    ) {
+                      formDataWithDefaults[key] = schemaProp.default
+                    }
+                  }
+                }
+
+                // Handlers for RJSF Form
+                const handleFormChange = (e: IChangeEvent) => {
+                  setEditingNodeData((prev) =>
+                    prev ? { ...prev, properties: e.formData } : prev
+                  )
+                }
+
+                const handleFormSubmit = ({ formData }: IChangeEvent) => {
+                  if (!selectedNode) return
+
+                  // Apply changes to the actual node
                   setNodes((nds) =>
                     nds.map((node) =>
                       node.id === selectedNode.id
@@ -755,7 +895,7 @@ function FlowContent() {
                             data: {
                               ...node.data,
                               label: editingNodeData.label,
-                              properties: editingNodeData.properties
+                              properties: formData
                             }
                           }
                         : node
@@ -764,109 +904,78 @@ function FlowContent() {
                   setSelectedNode(null)
                 }
 
+                const handleFormError = (
+                  errors: Array<{ message?: string; stack?: string }>
+                ) => {
+                  console.error("Form validation errors:", errors)
+                  // Show toast with validation errors
+                  const errorMessages = errors
+                    .map((err) => err.message || err.stack || "Unknown error")
+                    .join(", ")
+                  toast.error(`Validation failed: ${errorMessages}`)
+                }
+
                 return (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="node-label">Label</Label>
-                      <Input
-                        id="node-label"
-                        value={editingNodeData.label}
-                        onChange={(e) => {
-                          setEditingNodeData({
-                            ...editingNodeData,
-                            label: e.target.value
-                          })
-                        }}
-                      />
-                    </div>
-
-                    <div className="border-t pt-4">
-                      <h4 className="font-semibold mb-3">Node Properties</h4>
-                      {(() => {
-                        const nodeType = selectedNode.data.nodeTypeData as INode
-                        const propertiesSchema = nodeType.properties
-
-                        const jsonSchema = z.toJSONSchema(
-                          propertiesSchema
-                        ) as JSONSchema
-
-                        if (
-                          jsonSchema.type === "object" &&
-                          jsonSchema.properties
-                        ) {
-                          return (
-                            <div className="space-y-3">
-                              {Object.entries(jsonSchema.properties).map(
-                                ([key]) => {
-                                  const fieldSchema =
-                                    (
-                                      propertiesSchema as z.ZodObject<z.ZodRawShape>
-                                    ).shape?.[key] || z.string()
-
-                                  return (
-                                    <DynamicFormField
-                                      key={key}
-                                      name={key}
-                                      schema={fieldSchema as z.ZodTypeAny}
-                                      value={editingNodeData.properties[key]}
-                                      onChange={(value) => {
-                                        setEditingNodeData({
-                                          ...editingNodeData,
-                                          properties: {
-                                            ...editingNodeData.properties,
-                                            [key]: value
-                                          }
-                                        })
-                                      }}
-                                      onSubmit={handleSubmit}
-                                    />
-                                  )
-                                }
-                              )}
-                            </div>
-                          )
-                        }
-
-                        return (
-                          <p className="text-sm text-muted-foreground">
-                            No properties configured
-                          </p>
-                        )
-                      })()}
-                    </div>
-
-                    <div className="border-t pt-4 space-y-3">
-                      <Button type="submit" className="w-full">
-                        Save Changes
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => {
-                          setSelectedNode(null)
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        className="w-full"
-                        onClick={() => {
-                          setNodes((nds) =>
-                            nds.filter((node) => node.id !== selectedNode.id)
-                          )
-                          setSelectedNode(null)
-                        }}
-                      >
-                        Delete Node
-                      </Button>
-                    </div>
-                  </>
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold mb-3">Node Properties</h4>
+                    <Form
+                      ref={formRef}
+                      schema={jsonSchema}
+                      uiSchema={uiSchema}
+                      formData={formDataWithDefaults}
+                      validator={validator}
+                      widgets={customWidgets}
+                      fields={customFields}
+                      templates={{ FieldTemplate }}
+                      onChange={handleFormChange}
+                      onSubmit={handleFormSubmit}
+                      onError={handleFormError}
+                      liveValidate={false}
+                      showErrorList={false}
+                    >
+                      {/* Remove default submit button */}
+                      <div />
+                    </Form>
+                  </div>
                 )
               })()}
-            </form>
+
+              {/* Botões de ação (mantidos) */}
+              <div className="border-t pt-4 space-y-3">
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => formRef.current?.submit()}
+                >
+                  Save Changes
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setSelectedNode(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => {
+                    if (!selectedNode) return
+
+                    setNodes((nds) =>
+                      nds.filter((node) => node.id !== selectedNode.id)
+                    )
+                    setSelectedNode(null)
+                  }}
+                >
+                  Delete Node
+                </Button>
+              </div>
+            </div>
           )}
         </SheetContent>
       </Sheet>
@@ -904,9 +1013,9 @@ function FlowContent() {
             </Button>
             <Button
               onClick={handleNameDialogConfirm}
-              disabled={!tempWorkflowName.trim() || isSaving}
+              disabled={!tempWorkflowName.trim() || saveMutation.isPending}
             >
-              {isSaving ? "Saving..." : "Save"}
+              {saveMutation.isPending ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

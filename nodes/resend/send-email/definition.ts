@@ -11,34 +11,23 @@ const ResendSendEmailNode = {
   nodeType: "action",
   category: "default-lib",
   properties: z.object({
-    toEmail: z
-      .email()
-      .meta({
-        title: "Recipient",
-        description: "The email address of the email to resend"
-      }),
-    fromEmail: z
-      .string()
-      .min(1)
-      .meta({
-        title: "Sender",
-        description: "The sender's email address"
-      }),
-    subject: z
-      .string()
-      .min(1)
-      .meta({
-        title: "Subject",
-        description: "The subject of the email"
-      }),
-    body: z
-      .string()
-      .min(1)
-      .meta({
-        title: "Body",
-        description: "The body content of the email",
-        field: "textarea"
-      })
+    toEmail: z.email().meta({
+      title: "Recipient",
+      description: "The email address of the email to resend"
+    }),
+    fromEmail: z.string().min(1).meta({
+      title: "Sender",
+      description: "The sender's email address"
+    }),
+    subject: z.string().min(1).meta({
+      title: "Subject",
+      description: "The subject of the email"
+    }),
+    body: z.string().min(1).meta({
+      title: "Body",
+      description: "The body content of the email",
+      field: "textarea"
+    })
   }),
   result: z.object({
     success: z

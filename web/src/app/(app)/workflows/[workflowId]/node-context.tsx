@@ -1,16 +1,25 @@
 "use client"
 
-import React, { createContext, useContext, type ReactNode } from "react"
-import type { INode } from "node-base"
+import { createContext, type ReactNode, useContext } from "react"
 
 type NodeContextType = {
-  onAddNodeFromHandle: (sourceNodeId: string, sourceHandleId: string, position: { x: number; y: number }) => void
+  onAddNodeFromHandle: (
+    sourceNodeId: string,
+    sourceHandleId: string,
+    position: { x: number; y: number }
+  ) => void
   setShowNodePalette: (show: boolean) => void
 }
 
 const NodeContext = createContext<NodeContextType | null>(null)
 
-export function NodeProvider({ children, value }: { children: ReactNode; value: NodeContextType }) {
+export function NodeProvider({
+  children,
+  value
+}: {
+  children: ReactNode
+  value: NodeContextType
+}) {
   return <NodeContext.Provider value={value}>{children}</NodeContext.Provider>
 }
 

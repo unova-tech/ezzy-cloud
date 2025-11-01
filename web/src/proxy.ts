@@ -12,7 +12,7 @@ const BETTER_AUTH_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL
  * Middleware to protect routes requiring authentication.
  * Checks for valid session and redirects to login if not authenticated.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { data: session } = await betterFetch<Session>(
     "/api/auth/get-session",
     {
@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
 
 /**
  * Configure which routes should be protected by this middleware.
- * Matches all routes under /dashboard and /create, excluding API routes.
+ * Matches all routes under /workflows, excluding API routes.
  */
 export const config = {
   matcher: [

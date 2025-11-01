@@ -27,7 +27,9 @@ export function TopBar({
     <div className="flex items-center justify-between px-4 py-3 bg-sidebar">
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-semibold">{workflowName}</h2>
-        {hasUnsavedChanges && <Badge variant="secondary">Unsaved changes</Badge>}
+        {hasUnsavedChanges && (
+          <Badge variant="secondary">Unsaved changes</Badge>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <Button

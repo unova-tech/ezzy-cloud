@@ -1,28 +1,30 @@
-import type { INode } from "node-base"
-import { lucideIcon } from "node-base"
+import { type INode, lucideIcon } from "node-base"
 import { z } from "zod"
 
-const TriggerManualNode = {
+const TriggerManualNode: INode = {
   name: "trigger-manual",
   title: "Manual Trigger",
-  description: "Start the workflow manually",
-  icon: lucideIcon("Play"),
+  description: "Trigger workflow manually from dashboard or API",
+  icon: lucideIcon("PlayCircle"),
   nodeType: "trigger",
   category: "core",
-  isStructural: true,
-  properties: z.object({
-    inputSchema: z
-      .string()
-      .optional()
-      .meta({
-        title: "Input Schema",
-        description: "JSON schema for the input payload (optional)",
-        field: "textarea"
-      })
-  }),
+
+  // Manual trigger doesn't need configuration - it's triggered by user action
+  properties: z.object({}),
+
   result: z.object({
-    payload: z.any().meta({ title: "Input payload" })
-  })
-} as const satisfies INode
+    input: z.any().describe("Input data provided when triggering manually"),
+    triggeredBy: z.string().optional().describe("User who triggered the workflow"),
+    triggeredAt: z.string().optional().describe("Timestamp when workflow was triggered")
+  }),
+
+  customOutputs: [
+    {
+      id: "output",
+      label: "On Trigger",
+      type: "control"
+    }
+  ]
+}
 
 export default TriggerManualNode

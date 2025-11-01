@@ -11,26 +11,19 @@ const ForNode = {
   category: "core",
   isStructural: true,
   properties: z.object({
-    iterator: z
-      .string()
-      .meta({
-        title: "Iterator",
-        description: "Expression that returns an array",
-        field: "textarea"
-      }),
-    itemVariable: z
-      .string()
-      .meta({
-        title: "Item Variable",
-        description: "Name of the variable for each item"
-      }),
-    batchSize: z
-      .number()
-      .optional()
-      .meta({
-        title: "Batch Size",
-        description: "Process items in batches (optional)"
-      })
+    iterator: z.string().meta({
+      title: "Iterator",
+      description: "Expression that returns an array",
+      field: "textarea"
+    }),
+    itemVariable: z.string().meta({
+      title: "Item Variable",
+      description: "Name of the variable for each item"
+    }),
+    batchSize: z.number().optional().meta({
+      title: "Batch Size",
+      description: "Process items in batches (optional)"
+    })
   }),
   result: z.object({}),
   customOutputs: [

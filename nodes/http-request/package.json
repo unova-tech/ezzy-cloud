@@ -7,7 +7,9 @@
     "./runtime": "./runtime.ts"
   },
   "ezzy-cloud": {
-    "nodes": ["./definition.ts"]
+    "nodes": [
+      "./definition.ts"
+    ]
   },
   "dependencies": {
     "node-base": "workspace:*",

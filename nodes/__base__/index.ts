@@ -22,9 +22,13 @@ export type INode = {
   result: z.ZodType
   secrets?: Record<string, ISecret>
   nodeType: "trigger" | "action"
-  
+
   // Optional fields for structural and executable nodes
-  customOutputs?: Array<{ id: string; label: string; type?: "control" | "data" }>
+  customOutputs?: Array<{
+    id: string
+    label: string
+    type?: "control" | "data"
+  }>
   customInputs?: Array<{ id: string; label: string; type?: "control" | "data" }>
   category?: "core" | "default-lib" | "external-lib"
   isStructural?: boolean

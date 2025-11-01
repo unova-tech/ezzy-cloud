@@ -1,9 +1,6 @@
 "use client"
 
-import {
-  IconBrandTabler,
-  IconSettings
-} from "@tabler/icons-react"
+import { IconBrandTabler, IconSettings } from "@tabler/icons-react"
 import { motion } from "motion/react"
 import Image from "next/image"
 import Link from "next/link"
@@ -15,11 +12,10 @@ export default function AppSidebar() {
   const { user } = useAuth()
   const [open, setOpen] = useState(false)
 
-
   const links = [
     {
       label: "Dashboard",
-      href: "/dashboard",
+      href: "/workflows",
       icon: (
         <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       )
@@ -74,7 +70,7 @@ export default function AppSidebar() {
 export const Logo = () => {
   return (
     <Link
-      href="/dashboard"
+      href="/workflows"
       className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
     >
       <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" />
@@ -92,7 +88,7 @@ export const Logo = () => {
 export const LogoIcon = () => {
   return (
     <Link
-      href="/dashboard"
+      href="/workflows"
       className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
     >
       <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" />

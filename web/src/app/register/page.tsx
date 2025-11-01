@@ -91,7 +91,7 @@ export default function RegisterPage() {
     try {
       await signIn.social({
         provider: "google",
-        callbackURL: "/dashboard"
+        callbackURL: "/workflows"
       })
     } catch (err) {
       setError("Failed to sign in with Google")

@@ -10,10 +10,14 @@ const HttpRequestNode = {
   nodeType: "action",
   category: "default-lib",
   properties: z.object({
-    method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]).meta({
-      title: "Method",
-      description: "HTTP method"
-    }),
+    method: z
+      .enum(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
+      .default("GET")
+      .meta({
+        title: "Method",
+        description: "HTTP method",
+        field: "select"
+      }),
     url: z.url().meta({
       title: "URL",
       description: "Target URL for the request"
@@ -42,7 +46,9 @@ const HttpRequestNode = {
   }),
   result: z.object({
     statusCode: z.number().meta({ title: "HTTP status code" }),
-    headers: z.record(z.string(), z.string()).meta({ title: "Response headers" }),
+    headers: z
+      .record(z.string(), z.string())
+      .meta({ title: "Response headers" }),
     body: z.string().meta({ title: "Response body" }),
     responseTime: z.number().meta({ title: "Response time in ms" })
   })

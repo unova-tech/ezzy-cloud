@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useCallback, useState } from "react"
 
 interface ToastProps {
   title: string
@@ -14,9 +14,9 @@ export function useToast() {
     // TODO: Implement proper toast UI component
     const prefix = props.variant === "destructive" ? "❌" : "✓"
     console.log(`${prefix} ${props.title}`, props.description || "")
-    
+
     setToasts((prev) => [...prev, props])
-    
+
     // Auto-remove after 3 seconds
     setTimeout(() => {
       setToasts((prev) => prev.slice(1))

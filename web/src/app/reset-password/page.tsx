@@ -1,16 +1,16 @@
 "use client"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Loader2, Lock } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useRouter, useSearchParams } from "next/navigation"
-import { authClient } from "@/lib/auth-client"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Lock } from "lucide-react"
+import { authClient } from "@/lib/auth-client"
 
 const resetPasswordSchema = z
   .object({
@@ -19,11 +19,11 @@ const resetPasswordSchema = z
       .min(8, "Password must be at least 8 characters")
       .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
       .regex(/[0-9]/, "Password must contain at least one number"),
-    confirmPassword: z.string(),
+    confirmPassword: z.string()
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
-    path: ["confirmPassword"],
+    path: ["confirmPassword"]
   })
 
 type ResetPasswordForm = z.infer<typeof resetPasswordSchema>
@@ -39,9 +39,9 @@ export default function ResetPasswordPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors }
   } = useForm<ResetPasswordForm>({
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: zodResolver(resetPasswordSchema)
   })
 
   const onSubmit = async (data: ResetPasswordForm) => {
@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
     try {
       const result = await authClient.resetPassword({
         newPassword: data.password,
-        token,
+        token
       })
 
       if (result.error) {
@@ -103,7 +103,9 @@ export default function ResetPasswordPage() {
               {...register("password")}
             />
             {errors.password && (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
             )}
           </div>
 

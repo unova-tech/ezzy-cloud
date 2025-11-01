@@ -30,7 +30,7 @@ export class WorkflowCompiler {
 
       // Analyze graph structure
       const analyzer = new GraphAnalyzer(nodes, edges)
-      let analyzed: ReturnType<GraphAnalyzer['analyze']>
+      let analyzed: ReturnType<GraphAnalyzer["analyze"]>
 
       try {
         analyzed = analyzer.analyze()
@@ -111,7 +111,7 @@ export class WorkflowCompiler {
 
       // Generate code
       const generator = new CodeGenerator(analyzed)
-      let generated: ReturnType<CodeGenerator['generate']>
+      let generated: ReturnType<CodeGenerator["generate"]>
 
       try {
         generated = generator.generate()

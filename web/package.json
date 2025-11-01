@@ -8,7 +8,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "@better-fetch/fetch": "^1.1.18",
     "@dagrejs/dagre": "^1.1.5",
     "@fingerprintjs/fingerprintjs": "^5.0.1",
     "@hookform/resolvers": "^5.2.2",
@@ -19,12 +18,16 @@
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-progress": "^1.1.7",
+    "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@rrweb/replay": "2.0.0-alpha.18",
+    "@rjsf/core": "6.0.0-beta.23",
+    "@rjsf/shadcn": "6.0.0-beta.23",
+    "@rjsf/utils": "6.0.0-beta.23",
+    "@rjsf/validator-ajv8": "6.0.0-beta.23",
     "@sentry/nextjs": "^10.22.0",
     "@tabler/icons-react": "^3.35.0",
     "@tanstack/react-query": "^5.90.5",
@@ -47,7 +50,6 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.65.0",
-    "react-jsonschema-form": "^1.8.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "valibot": "^1.1.0"

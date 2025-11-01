@@ -50,14 +50,16 @@ const EmailLayout: React.FC<PropsWithPreview> = ({
           <Container className="bg-white p-8 rounded shadow-md max-w-lg mx-auto">
             {children}
             <Text className="text-xs text-gray-500 mt-4">
-              Esta é uma mensagem automática, por favor não responda. Se precisar entre em contato através do e-mail{" "}
+              Esta é uma mensagem automática, por favor não responda. Se
+              precisar entre em contato através do e-mail{" "}
               <Link href="mailto:ezzycloud@unova.tech">
                 ezzycloud@unova.tech
               </Link>
             </Text>
           </Container>
           <Text className="text-center text-sm text-gray-500 mt-4">
-            © {new Date().getFullYear()} Ezzy Cloud. Todos os direitos reservados.
+            © {new Date().getFullYear()} Ezzy Cloud. Todos os direitos
+            reservados.
           </Text>
         </Body>
       </Html>

@@ -11,13 +11,11 @@ const SwitchNode = {
   category: "core",
   isStructural: true,
   properties: z.object({
-    expression: z
-      .string()
-      .meta({
-        title: "Expression",
-        description: "Expression to evaluate",
-        field: "textarea"
-      }),
+    expression: z.string().meta({
+      title: "Expression",
+      description: "Expression to evaluate",
+      field: "textarea"
+    }),
     cases: z
       .array(
         z.object({
@@ -32,7 +30,11 @@ const SwitchNode = {
   }),
   result: z.object({}),
   // CustomOutputs will be generated dynamically: one for each case + 'default'
-  customOutputs: [] as Array<{ id: string; label: string; type: "control" | "data" }>
+  customOutputs: [] as Array<{
+    id: string
+    label: string
+    type: "control" | "data"
+  }>
 } as const satisfies INode
 
 export default SwitchNode

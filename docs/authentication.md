@@ -284,7 +284,7 @@ const result = await signIn.email({
 // Google OAuth
 await signIn.social({
   provider: "google",
-  callbackURL: "/dashboard",
+  callbackURL: "/workflows",
 })
 ```
 

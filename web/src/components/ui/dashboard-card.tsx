@@ -1,24 +1,24 @@
-'use client';
+"use client"
 
-import { memo } from 'react';
-import { motion } from 'framer-motion';
-import { TrendingUp } from 'lucide-react';
+import { motion } from "framer-motion"
+import { TrendingUp } from "lucide-react"
+import { memo } from "react"
 
 interface DashboardCardProps {
   stat: {
-    title: string;
-    value: string;
-    change: string;
-    changeType: 'positive' | 'negative';
-    icon: any;
-    color: string;
-    bgColor: string;
-  };
-  index: number;
+    title: string
+    value: string
+    change: string
+    changeType: "positive" | "negative"
+    icon: any
+    color: string
+    bgColor: string
+  }
+  index: number
 }
 
 export const DashboardCard = memo(({ stat, index }: DashboardCardProps) => {
-  const Icon = stat.icon;
+  const Icon = stat.icon
 
   return (
     <motion.div
@@ -39,14 +39,14 @@ export const DashboardCard = memo(({ stat, index }: DashboardCardProps) => {
 
             <div
               className={`flex items-center gap-1 text-sm font-medium ${
-                stat.changeType === 'positive'
-                  ? 'text-green-500'
-                  : 'text-red-500'
+                stat.changeType === "positive"
+                  ? "text-green-500"
+                  : "text-red-500"
               }`}
             >
               <TrendingUp
                 className={`h-4 w-4 ${
-                  stat.changeType === 'negative' ? 'rotate-180' : ''
+                  stat.changeType === "negative" ? "rotate-180" : ""
                 }`}
               />
               <span>{stat.change}</span>
@@ -67,13 +67,13 @@ export const DashboardCard = memo(({ stat, index }: DashboardCardProps) => {
               initial={{ width: 0 }}
               animate={{ width: `${65 + index * 8}%` }}
               transition={{ duration: 1, delay: index * 0.1 }}
-              className={`h-full rounded-full ${stat.color.replace('text-', 'bg-')}`}
+              className={`h-full rounded-full ${stat.color.replace("text-", "bg-")}`}
             />
           </div>
         </div>
       </div>
     </motion.div>
-  );
-});
+  )
+})
 
-DashboardCard.displayName = 'DashboardCard';
+DashboardCard.displayName = "DashboardCard"

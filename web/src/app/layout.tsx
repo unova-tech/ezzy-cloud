@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 // import { AutumnProvider } from "autumn-js/react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
-import { AuthProvider } from "../lib/auth-context"
 import { Toaster } from "../components/ui/sonner"
+import { AuthProvider } from "../lib/auth-context"
 import { QueryProvider } from "./providers"
 // import publicConfig from "../lib/public-config"
 import Tracker from "./tracker"
@@ -39,7 +39,7 @@ export default async function RootLayout({
           <QueryProvider>
             <AuthProvider>
               {/* <AutumnProvider betterAuthUrl={publicConfig.BETTER_AUTH_URL}> */}
-                {children}
+              {children}
               {/* </AutumnProvider> */}
               <Toaster position="top-center" />
               <Tracker />

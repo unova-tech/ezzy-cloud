@@ -4,11 +4,11 @@ import { cn } from "@/lib/utils"
 export const BaseNode = forwardRef<
   HTMLDivElement,
   HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+>(({ className, style, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "relative rounded-md border bg-card text-card-foreground",
+      "relative border bg-card text-card-foreground",
       "hover:ring-1",
       // React Flow displays node elements inside of a `NodeWrapper` component,
       // which compiles down to a div with the class `react-flow__node`.
@@ -19,6 +19,7 @@ export const BaseNode = forwardRef<
       "[.react-flow\\_\\_node.selected_&]:shadow-lg",
       className
     )}
+    style={style}
     tabIndex={0}
     {...props}
   />

@@ -1,9 +1,9 @@
 "use client"
 
-import { createContext, useContext, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
-import { useSession, authClient } from "@/lib/auth-client"
 import type { Session } from "better-auth/types"
+import { useRouter } from "next/navigation"
+import { createContext, type ReactNode, useContext } from "react"
+import { authClient, useSession } from "@/lib/auth-client"
 
 interface AuthContextType {
   session: Session | null
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session: session ?? null,
     isLoading: isPending,
     user: session?.user ?? null,
-    signOut: handleSignOut,
+    signOut: handleSignOut
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -45,17 +45,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 /**
  * Hook to access authentication context.
  * Must be used within an AuthProvider.
- * 
+ *
  * @returns Authentication state including session, user, loading state, and signOut function
  * @throws Error if used outside AuthProvider
- * 
+ *
  * @example
  * ```tsx
  * const { user, isLoading, signOut } = useAuth()
- * 
+ *
  * if (isLoading) return <div>Loading...</div>
  * if (!user) return <div>Not authenticated</div>
- * 
+ *
  * return (
  *   <div>
  *     <p>Welcome, {user.name}!</p>

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "turbo run dev --filter=web",
     "lint": "biome check",
-    "format": "biome format --write"
+    "format": "biome check --write"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",

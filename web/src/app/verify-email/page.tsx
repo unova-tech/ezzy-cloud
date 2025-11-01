@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { Loader2, MailCheck } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { authClient } from "@/lib/auth-client"
+import { useState } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, MailCheck } from "lucide-react"
+import { authClient } from "@/lib/auth-client"
 
 export default function VerifyEmailPage() {
   const router = useRouter()
@@ -40,22 +40,22 @@ export default function VerifyEmailPage() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!code || code.length !== 6) {
       setError("Please enter a valid 6-digit code")
       return
     }
-    
+
     setIsLoading(true)
     setError(null)
     setSuccess(null)
 
     try {
       console.log("Verifying email with:", { email, code })
-      
+
       const result = await authClient.emailOtp.verifyEmail({
         email: email,
-        otp: code,
+        otp: code
       })
 
       console.log("Verify result:", result)
@@ -66,8 +66,8 @@ export default function VerifyEmailPage() {
         return
       }
 
-      // Redirect to dashboard on success
-      router.push("/dashboard")
+      // Redirect to workflows on success
+      router.push("/workflows")
     } catch (err) {
       console.error("Verification error:", err)
       setError("An unexpected error occurred. Please try again.")
@@ -80,7 +80,7 @@ export default function VerifyEmailPage() {
       setError("Email address is missing")
       return
     }
-    
+
     setIsResending(true)
     setError(null)
     setSuccess(null)
@@ -147,7 +147,11 @@ export default function VerifyEmailPage() {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading || !code}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading || !code}
+          >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
