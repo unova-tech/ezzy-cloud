@@ -1,3 +1,15 @@
+/**
+ * HTTP Request Node Runtime - WinterCG-compatible
+ * 
+ * Uses only Web standard APIs:
+ * - fetch() - Web Fetch API
+ * - AbortController - Web standard for request cancellation
+ * - setTimeout/clearTimeout - Timer APIs
+ * - Headers - Web standard
+ * 
+ * Compatible with Cloudflare Workers, WinterJS, Deno, Node.js 18+
+ */
+
 import type { ExtractProps, ExtractSecrets } from "node-base"
 import type HttpRequestNode from "./definition"
 

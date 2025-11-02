@@ -1,0 +1,13 @@
+# Docker ignore file for WinterJS workflow builds
+# This file should be in the repository root
+# Build context is the repository root directory
+
+# Ignore everything by default
+*
+
+# Allow only the workflow bundle
+!_worker.js
+
+# Optional: Allow documentation if needed in the image
+# !README.md
+# !backend/templates/README.md

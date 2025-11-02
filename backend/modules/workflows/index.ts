@@ -5,6 +5,7 @@ import { authMacroPlugin } from "../../better-auth"
 import db from "../../database"
 import { workflowExecutions, workflows } from "../../database/schema"
 import { WorkflowCompiler } from "../../lib/workflow-compiler"
+import { buildWinterJSDeployment } from "./build-winterjs"
 
 export const workflowsModule = new Elysia({ prefix: "/workflows" })
   .use(authMacroPlugin)
@@ -450,6 +451,93 @@ export const workflowsModule = new Elysia({ prefix: "/workflows" })
         success: true,
         executions
       }
+    },
+    {
+      params: t.Object({
+        id: t.String()
+      }),
+      auth: true
+    }
+  )
+
+  // Build WinterJS deployment package
+  .post(
+    "/:id/build-winterjs",
+    async ({ params, user, set }) => {
+      const { id } = params
+
+      console.log(`[API] Build request for workflow: ${id}`)
+
+      // 1. Fetch and validate workflow
+      const workflowData = await db
+        .select()
+        .from(workflows)
+        .where(and(eq(workflows.id, id), eq(workflows.userId, user.id)))
+        .limit(1)
+
+      if (workflowData.length === 0) {
+        set.status = 404
+        return {
+          success: false,
+          error: "Workflow not found"
+        }
+      }
+
+      const workflow = workflowData[0]
+      if (!workflow) {
+        set.status = 404
+        return {
+          success: false,
+          error: "Workflow not found"
+        }
+      }
+
+      // 2. Build deployment package
+      const buildResult = await buildWinterJSDeployment({
+        workflow: {
+          id: workflow.id,
+          name: workflow.name,
+          version: workflow.version,
+          nodes: workflow.nodes as Node[],
+          edges: workflow.edges as Edge[]
+        }
+      })
+
+      if (!buildResult.success || !buildResult.archiveBuffer) {
+        set.status = 400
+        return {
+          success: false,
+          error: buildResult.error || 'Build failed'
+        }
+      }
+
+      // 3. Sanitize workflow name for filename
+      const sanitizedName = workflow.name
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .substring(0, 50)
+
+      const timestamp = Date.now()
+      const filename = `workflow-${sanitizedName}-${timestamp}.tar.gz`
+
+      // 4. Set response headers
+      set.headers['Content-Type'] = 'application/gzip'
+      set.headers['Content-Disposition'] = `attachment; filename="${filename}"`
+      set.headers['X-Workflow-Id'] = workflow.id
+      set.headers['X-Workflow-Name'] = workflow.name
+      set.headers['X-Workflow-Version'] = buildResult.metadata!.version.toString()
+      set.headers['X-Bundle-Size'] = buildResult.metadata!.bundleSize.toString()
+      set.headers['X-Archive-Size'] = buildResult.metadata!.archiveSize.toString()
+      set.headers['X-Build-Timestamp'] = buildResult.metadata!.buildTimestamp
+      set.headers['X-Environment-Variables'] = JSON.stringify(buildResult.metadata!.environmentVariables)
+
+      console.log(`[API] Build completed successfully for workflow: ${id}`)
+      console.log(`[API] Archive size: ${buildResult.metadata!.archiveSize} bytes`)
+
+      // 5. Return archive buffer
+      return buildResult.archiveBuffer
     },
     {
       params: t.Object({

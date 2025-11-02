@@ -1,3 +1,21 @@
 node_modules
 .env
 .turbo
+
+# Docker and deployment artifacts
+*.env
+!.env.example
+!example-workflow.env
+_worker.js
+*.dockerfile
+Dockerfile.generated
+
+# Build artifacts
+build-context/
+deploy-artifacts/
+*.tar.gz
+*.zip
+
+# Kubernetes manifests with secrets
+*-secret.yaml
+*-secrets.yaml

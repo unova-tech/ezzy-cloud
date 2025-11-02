@@ -1,11 +1,9 @@
-import { betterFetch } from "@better-fetch/fetch"
-import type { Session } from "better-auth/types"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
 // Import public config to get BETTER_AUTH_URL
-// Note: We can't directly import from lib/public-config in middleware due to edge runtime
-// So we'll read from env directly
+// Note: We use native fetch in middleware due to edge runtime limitations
+// Eden Treaty is not fully compatible with edge runtime
 const BETTER_AUTH_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL
 
 /**
@@ -13,24 +11,36 @@ const BETTER_AUTH_URL = process.env.NEXT_PUBLIC_BETTER_AUTH_URL
  * Checks for valid session and redirects to login if not authenticated.
  */
 export async function proxy(request: NextRequest) {
-  const { data: session } = await betterFetch<Session>(
-    "/api/auth/get-session",
-    {
-      baseURL: BETTER_AUTH_URL,
+  try {
+    // Use native fetch instead of Eden Treaty due to edge runtime limitations
+    const response = await fetch(`${BETTER_AUTH_URL}/api/auth/get-session`, {
+      method: 'GET',
       headers: {
         // Forward the cookie header to the session endpoint
-        cookie: request.headers.get("cookie") || ""
-      }
-    }
-  )
+        'cookie': request.headers.get("cookie") || "",
+        'content-type': 'application/json'
+      },
+      cache: 'no-store'
+    })
 
-  // If no session exists, redirect to login
-  if (!session) {
+    if (!response.ok) {
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
+
+    const session = await response.json()
+
+    // If no session exists, redirect to login
+    if (!session || !session.user) {
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
+
+    // Allow the request to proceed
+    return NextResponse.next()
+  } catch (error) {
+    // On error, redirect to login for safety
+    console.error('Session check error:', error)
     return NextResponse.redirect(new URL("/login", request.url))
   }
-
-  // Allow the request to proceed
-  return NextResponse.next()
 }
 
 /**

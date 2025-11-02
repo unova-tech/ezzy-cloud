@@ -1,10 +1,13 @@
 import type { Edge, Node } from "@xyflow/react"
 import { CodeGenerator } from "./code-generator"
 import { GraphAnalyzer } from "./graph-analyzer"
+import { WorkflowBundler } from "./workflow-bundler"
 
 export interface CompilationResult {
   success: boolean
   code?: string
+  bundle?: string // JavaScript bundle para WinterJS
+  bundleSize?: number // Tamanho do bundle em bytes
   error?: string
   warnings?: string[]
   metadata?: {
@@ -12,7 +15,29 @@ export interface CompilationResult {
     edgeCount: number
     hasLoops: boolean
     maxDepth: number
+    bundleTime?: number // Tempo de bundling em ms
   }
+  environmentVariables?: {
+    workflowId: boolean
+    secrets: string[]
+  }
+}
+
+export interface BuildMetadata {
+  workflowId: string
+  workflowName: string
+  buildTimestamp: string  // ISO 8601 format
+  bundleSize: number
+  nodeCount: number
+  edgeCount: number
+  hasLoops: boolean
+  maxDepth: number
+  bundleTime?: number
+  environmentVariables: {
+    workflowId: boolean
+    secrets: string[]
+  }
+  warnings?: string[]
 }
 
 export class WorkflowCompiler {
@@ -150,6 +175,124 @@ export class WorkflowCompiler {
     return {
       ...result,
       code: undefined // Don't return code for validation-only
+    }
+  }
+
+  // Compile and bundle workflow for WinterJS deployment
+  async compileAndBundle(
+    nodes: Node[],
+    edges: Edge[],
+    options?: { minify?: boolean; sourcemap?: boolean }
+  ): Promise<CompilationResult> {
+    // First, compile the workflow
+    const result = await this.compile(nodes, edges)
+
+    // If compilation failed, return immediately
+    if (!result.success || !result.code) {
+      return result
+    }
+
+    try {
+      // Extract used nodes (filter out triggers and structural nodes)
+      const coreNodes = ["if", "switch", "for", "merge"]
+      const usedNodes = [
+        ...new Set(
+          nodes
+            .map(n => {
+              const dataType = (n.data as any)?.type as string | undefined
+              return dataType
+            })
+            .filter((type): type is string => {
+              if (!type) return false
+              if (type.startsWith('trigger-')) return false
+              if (coreNodes.includes(type)) return false
+              return true
+            })
+        )
+      ]
+
+      // Initialize bundler
+      const bundler = new WorkflowBundler()
+
+      // Measure bundling time
+      const startTime = Date.now()
+
+      // Execute bundling
+      const bundleResult = await bundler.bundle({
+        workflowId: crypto.randomUUID(),
+        generatedCode: result.code,
+        usedNodes,
+        minify: options?.minify ?? true,
+        sourcemap: options?.sourcemap ?? false
+      })
+
+      const bundleTime = Date.now() - startTime
+
+      // Process bundle result
+      if (!bundleResult.success) {
+        // Bundling failed, add warning but still return compiled code
+        const warnings = [...(result.warnings || []), `Bundling failed: ${bundleResult.error}`]
+        return {
+          ...result,
+          warnings
+        }
+      }
+
+      // Success - merge bundle with compilation result
+      const allWarnings = [...(result.warnings || []), ...(bundleResult.warnings || [])]
+
+      return {
+        ...result,
+        bundle: bundleResult.bundleCode,
+        bundleSize: bundleResult.bundleSize,
+        environmentVariables: bundleResult.environmentVariables,
+        warnings: allWarnings.length > 0 ? allWarnings : undefined,
+        metadata: {
+          ...result.metadata!,
+          bundleTime
+        }
+      }
+    } catch (error) {
+      // Bundling error, add warning but still return compiled code
+      const warnings = [
+        ...(result.warnings || []),
+        `Bundling error: ${error instanceof Error ? error.message : String(error)}`
+      ]
+      return {
+        ...result,
+        warnings
+      }
+    }
+  }
+
+  /**
+   * Extract build metadata from compilation result
+   * Centralizes metadata extraction for deployment artifacts
+   */
+  getBuildMetadata(
+    result: CompilationResult,
+    workflowName: string,
+    workflowId: string
+  ): BuildMetadata {
+    if (!result.success || !result.metadata) {
+      throw new Error('Cannot extract metadata from failed compilation')
+    }
+
+    return {
+      workflowId,
+      workflowName,
+      buildTimestamp: new Date().toISOString(),
+      bundleSize: result.bundleSize || 0,
+      nodeCount: result.metadata.nodeCount,
+      edgeCount: result.metadata.edgeCount,
+      hasLoops: result.metadata.hasLoops,
+      maxDepth: result.metadata.maxDepth,
+      bundleTime: result.metadata.bundleTime,
+      environmentVariables: result.environmentVariables || {
+        workflowId: false,
+        secrets: []
+      },
+      warnings: result.warnings
     }
   }
 }

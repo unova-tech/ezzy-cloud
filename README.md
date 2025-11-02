@@ -46,6 +46,120 @@ Extensible plugin system for community integrations
 - **Code Generation**: Generate production-ready Cloudflare Worker code
 - **Error Detection**: Comprehensive validation with helpful warnings
 
+## Runtime Compatibility
+
+O código gerado pela plataforma é compatível com múltiplos runtimes JavaScript:
+
+- ✅ **Cloudflare Workers** - Runtime original, totalmente suportado
+- ✅ **WinterJS** - Runtime compatível para deploy em Kubernetes/Knative
+- ✅ **Deno** - Compatível (com adaptações mínimas)
+- ⚠️ **Node.js 18+** - Compatível (requer polyfills para algumas Web APIs)
+
+### Por que é compatível?
+
+Todo o código gerado usa **apenas APIs Web padrão** (WinterCG):
+- fetch(), crypto, Response, Request, URL
+- Nenhuma API Node.js-específica
+- Nenhum binding Cloudflare-específico
+
+Para detalhes completos, veja [docs/winterjs-compatibility.md](docs/winterjs-compatibility.md).
+
+### Bundling para Deploy
+
+O projeto inclui sistema de bundling automático para gerar artifacts de deploy:
+
+**WorkflowBundler** (`backend/lib/workflow-bundler.ts`):
+- Empacota workflow compilado + runtime + node runtimes em arquivo único
+- Usa esbuild para bundling rápido e eficiente
+- Resolve workspace dependencies automaticamente
+- Gera bundle JavaScript compatível com WinterJS e Cloudflare Workers
+- Documenta variáveis de ambiente necessárias
+
+**Uso via WorkflowCompiler**:
+```typescript
+const compiler = new WorkflowCompiler()
+const result = await compiler.compileAndBundle(nodes, edges)
+
+// result.code: TypeScript gerado
+// result.bundle: JavaScript bundle para deploy
+// result.bundleSize: Tamanho do bundle
+```
+
+Para detalhes completos sobre bundling e compatibilidade, veja [docs/winterjs-compatibility.md](docs/winterjs-compatibility.md).
+
+### Containerização com Docker
+
+O projeto inclui Dockerfile template para criar imagens Docker com WinterJS runtime:
+
+**Template**: `backend/templates/Dockerfile.winterjs`
+- Base image: Debian Bookworm Slim + Wasmer CLI
+- Runtime: WinterJS (Cloudflare Workers-compatible)
+- Tamanho: ~150-200MB (base + bundle)
+- Suporta injeção de variáveis via Kubernetes ConfigMap/Secrets
+
+**Build e deploy:**
+```bash
+# 1. Gerar bundle
+const result = await compiler.compileAndBundle(nodes, edges)
+fs.writeFileSync('_worker.js', result.bundle)
+
+# 2. Build imagem Docker
+docker build -f backend/templates/Dockerfile.winterjs -t my-workflow:latest .
+
+# 3. Deploy no Kubernetes/Knative
+kubectl apply -f knative-service.yaml
+```
+
+Para instruções completas, consulte `backend/templates/README.md`.
+
+## API de Build e Deploy
+
+O sistema fornece um endpoint REST para gerar automaticamente todos os artifacts necessários para deploy:
+
+### POST /api/workflows/:id/build-winterjs
+
+Gera um pacote tar.gz com todos os arquivos necessários para deploy do workflow em Docker/Kubernetes.
+
+**Autenticação**: Requerida (Bearer token)
+
+**Retorna**:
+- Arquivo tar.gz contendo (formato zip não suportado):
+  - `_worker.js` - Bundle JavaScript compilado
+  - `Dockerfile` - Template WinterJS configurado
+  - `.dockerignore` - Regras de exclusão
+  - `README.md` - Quick start guide do workflow
+  - `example.env` - Template de variáveis de ambiente
+  - `DEPLOYMENT.md` - Guia completo de deployment
+
+**Uso**:
+```bash
+# Download do pacote
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  http://localhost:3000/api/workflows/abc123/build-winterjs \
+  -o workflow.tar.gz
+
+# Extrair e fazer deploy
+tar -xzf workflow.tar.gz
+cd workflow/
+cp example.env .env  # Editar com secrets reais
+docker build -t my-workflow .
+docker run --env-file .env -p 8080:8080 my-workflow
+```
+
+**Recursos**:
+- ✅ Auto-detecção de secrets necessários
+- ✅ Geração de README específico do workflow
+- ✅ Instruções Docker e Kubernetes incluídas
+- ✅ Templates de ConfigMap/Secret prontos
+- ✅ Metadata nos response headers (tamanhos, timestamp, env vars)
+
+Para detalhes completos da API, consulte [docs/winterjs-compatibility.md](docs/winterjs-compatibility.md#api-endpoint-para-build).
+
+### Deploy Options
+
+1. **Cloudflare Workers for Platforms**: Deploy código TypeScript diretamente (Wrangler compila)
+2. **Kubernetes + Knative + WinterJS**: Deploy bundle JavaScript em container
+
 ### Security & Secrets
 - **AES-256-GCM Encryption**: Secure secret storage
 - **Per-Workflow Secrets**: Isolated secret management

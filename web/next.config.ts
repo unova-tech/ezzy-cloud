@@ -22,7 +22,13 @@ const nextConfig: NextConfig = {
       }
     }
   },
-  serverExternalPackages: ["import-in-the-middle", "require-in-the-middle"]
+  serverExternalPackages: [
+    "esbuild",
+    "tar",
+    "ts-morph",
+    "drizzle-orm",
+    "postgres"
+  ]
 }
 
 export default withSentryConfig(nextConfig, {

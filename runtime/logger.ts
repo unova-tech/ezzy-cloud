@@ -1,3 +1,17 @@
+/**
+ * Logger - WinterCG-compatible logging utility
+ * 
+ * Uses only console.* APIs (available in all JavaScript runtimes).
+ * Stores logs in-memory for retrieval at end of execution.
+ * 
+ * Compatible with:
+ * - Cloudflare Workers
+ * - WinterJS
+ * - Deno
+ * - Node.js
+ * - Browsers
+ */
+
 type LogLevel = "info" | "error" | "debug" | "warn"
 
 type LogEntry = {

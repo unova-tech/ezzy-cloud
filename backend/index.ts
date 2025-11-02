@@ -2,13 +2,13 @@ import { logger } from "@bogeychan/elysia-logger"
 import { cors } from "@elysiajs/cors"
 import { serverTiming } from "@elysiajs/server-timing"
 import { swagger } from "@elysiajs/swagger"
+import { randomUUIDv7 } from "bun"
 import { count, eq, sql } from "drizzle-orm"
 import Elysia, { t } from "elysia"
 import WelcomeEmail from "emails/welcome"
 import Mailchecker from "mailchecker"
 import { customAlphabet } from "nanoid"
 import { Resend } from "resend"
-import { v7 as uuidv7 } from "uuid"
 import config from "../web/src/lib/config"
 import { betterAuthPlugin } from "./better-auth"
 import db, { signatures } from "./database"
@@ -123,7 +123,7 @@ const app = new Elysia({ prefix: "/api" })
           })
         }).then((res) => res.json() as Promise<{ data?: { id?: string } }>),
         db.insert(signatures).values({
-          id: uuidv7(),
+          id: randomUUIDv7(),
           email,
           referralCode,
           referredBy: referredBy ?? null,

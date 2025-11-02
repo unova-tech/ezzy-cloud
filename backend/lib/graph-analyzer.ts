@@ -60,7 +60,14 @@ export class GraphAnalyzer {
 
   private findEntryPoint(): string | null {
     for (const node of this.nodes.values()) {
+      // Check for nodeTypeData (hydrated nodes)
       if (node.data?.nodeTypeData?.nodeType === "trigger") {
+        return node.id
+      }
+      
+      // Fallback: check data.type for sanitized nodes
+      const nodeType = (node.data as any)?.type
+      if (typeof nodeType === 'string' && nodeType.startsWith('trigger-')) {
         return node.id
       }
     }
@@ -132,17 +139,54 @@ export class GraphAnalyzer {
     }
 
     const nodeTypeData = node.data?.nodeTypeData || {}
-    const isStructural = nodeTypeData.isStructural === true
-    const category = nodeTypeData.category || "external-lib"
+    const dataType = (node.data as any)?.type as string | undefined
+    
+    // Determine semantic type
+    let type: string
+    let nodeKind: string
+    let isStructural: boolean
+    let category: "core" | "default-lib" | "external-lib"
+    
+    if (nodeTypeData.name) {
+      // Hydrated node - use nodeTypeData
+      type = nodeTypeData.name
+      nodeKind = nodeTypeData.nodeType || "unknown"
+      isStructural = nodeTypeData.isStructural === true
+      category = nodeTypeData.category || "external-lib"
+    } else if (dataType) {
+      // Sanitized node - infer from data.type
+      type = dataType
+      
+      // Infer nodeKind
+      if (dataType.startsWith('trigger-')) {
+        nodeKind = 'trigger'
+      } else if (['if', 'switch', 'for', 'merge'].includes(dataType)) {
+        nodeKind = 'structural'
+      } else {
+        nodeKind = 'action'
+      }
+      
+      // Set isStructural
+      isStructural = ['if', 'switch', 'for', 'merge'].includes(dataType)
+      
+      // Default category for unknown nodes
+      category = 'external-lib'
+    } else {
+      // Fallback for completely unknown nodes
+      type = "unknown"
+      nodeKind = "unknown"
+      isStructural = false
+      category = "external-lib"
+    }
 
     const inputs = this.getPredecessors(node.id)
     const outputs = this.getSuccessors(node.id)
 
     const analyzed: AnalyzedNode = {
       id: node.id,
-      type: nodeTypeData.name || "unknown", // semantic type from nodeTypeData
+      type, // semantic type
       componentType: node.type || "base", // ReactFlow component type
-      nodeKind: nodeTypeData.nodeType || "unknown", // trigger/action/structural
+      nodeKind, // trigger/action/structural
       data: node.data || {},
       isStructural,
       category,

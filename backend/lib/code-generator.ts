@@ -1,6 +1,7 @@
 import type { CodeBlockWriter } from "ts-morph"
 import { Project } from "ts-morph"
 import type { AnalyzedGraph, AnalyzedNode } from "./graph-analyzer"
+import { getPackageName } from "./package-map"
 
 export interface GeneratedCode {
   code: string
@@ -8,6 +9,17 @@ export interface GeneratedCode {
   exports: string[]
 }
 
+/**
+ * Generates Cloudflare Workers-compatible code that also runs on WinterJS.
+ * 
+ * Compatibility notes:
+ * - Uses only WinterCG-standard Web APIs (fetch, crypto, Response, etc.)
+ * - Format: export default { async fetch(request, env, ctx) }
+ * - This format is natively supported by both Cloudflare Workers and WinterJS
+ * - For WinterJS deployment: bundle this code + runtime packages + node runtimes
+ * 
+ * See docs/winterjs-compatibility.md for full compatibility matrix.
+ */
 export class CodeGenerator {
   private analyzed: AnalyzedGraph
   private project!: Project
@@ -27,12 +39,7 @@ export class CodeGenerator {
 
   // Map node names to package identifiers
   private getPackageName(nodeName: string): string {
-    const packageMap: Record<string, string> = {
-      "http-request": "http-request",
-      code: "code",
-      "send-email": "resend/send-email"
-    }
-    return packageMap[nodeName] || nodeName
+    return getPackageName(nodeName)
   }
 
   generate(): GeneratedCode {
@@ -93,16 +100,9 @@ export class CodeGenerator {
               writer.writeLine("// Format: env.SECRET_<name> -> secrets[name]")
               writer.blankLine()
 
-              // Publish execution start event
-              writer.writeLine("// Publish execution start event")
-              writer.write("if (env.EXECUTIONS_QUEUE)").block(() => {
-                writer.writeLine("await env.EXECUTIONS_QUEUE.send({")
-                writer.writeLine("  executionId,")
-                writer.writeLine("  workflowId,")
-                writer.writeLine("  status: 'started',")
-                writer.writeLine("  timestamp: Date.now()")
-                writer.writeLine("})")
-              })
+              // Log execution start event
+              writer.writeLine("// Log execution start event")
+              writer.writeLine("console.log(JSON.stringify({ executionId, workflowId, status: 'started', timestamp: Date.now() }))")
               writer.blankLine()
 
               // Generate request handling
@@ -114,18 +114,9 @@ export class CodeGenerator {
               writer.writeLine("const logs = logger.getLogs()")
               writer.blankLine()
 
-              // Publish execution success event
-              writer.writeLine("// Publish execution success event")
-              writer.write("if (env.EXECUTIONS_QUEUE)").block(() => {
-                writer.writeLine("await env.EXECUTIONS_QUEUE.send({")
-                writer.writeLine("  executionId,")
-                writer.writeLine("  workflowId,")
-                writer.writeLine("  status: 'completed',")
-                writer.writeLine("  output: result,")
-                writer.writeLine("  logs,")
-                writer.writeLine("  timestamp: Date.now()")
-                writer.writeLine("})")
-              })
+              // Log execution success event
+              writer.writeLine("// Log execution success event")
+              writer.writeLine("console.log(JSON.stringify({ executionId, workflowId, status: 'completed', output: result, timestamp: Date.now() }))")
               writer.blankLine()
 
               writer.writeLine("return createJsonResponse({ success: true, result, logs }, 200)")
@@ -137,18 +128,9 @@ export class CodeGenerator {
               writer.writeLine("const logs = logger.getLogs()")
               writer.blankLine()
 
-              // Publish execution error event
-              writer.writeLine("// Publish execution error event")
-              writer.write("if (env.EXECUTIONS_QUEUE)").block(() => {
-                writer.writeLine("await env.EXECUTIONS_QUEUE.send({")
-                writer.writeLine("  executionId,")
-                writer.writeLine("  workflowId,")
-                writer.writeLine("  status: 'failed',")
-                writer.writeLine("  error: errorResponse,")
-                writer.writeLine("  logs,")
-                writer.writeLine("  timestamp: Date.now()")
-                writer.writeLine("})")
-              })
+              // Log execution error event
+              writer.writeLine("// Log execution error event")
+              writer.writeLine("console.error(JSON.stringify({ executionId, workflowId, status: 'failed', error: errorResponse, timestamp: Date.now() }))")
               writer.blankLine()
 
               writer.writeLine("return createJsonResponse({ success: false, error: errorResponse, logs }, 500)")

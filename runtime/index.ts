@@ -1,3 +1,19 @@
+/**
+ * Workflow Runtime - WinterCG-compatible utilities
+ * 
+ * This runtime package uses only Web standard APIs and is compatible with:
+ * - Cloudflare Workers
+ * - WinterJS
+ * - Deno
+ * - Node.js (with appropriate polyfills)
+ * 
+ * APIs used:
+ * - Map, Function, Date, JSON (JavaScript standard)
+ * - Response (Web standard)
+ * - No Node.js-specific APIs
+ * - No Cloudflare-specific bindings
+ */
+
 export type StepResult = {
   success: boolean
   output?: any

@@ -327,9 +327,14 @@ function FlowContent() {
     }
 
     const currentSnapshot = createSanitizedSnapshot(nodes, edges, workflowName)
+    const lastSavedSnapshot = createSanitizedSnapshot(
+      lastSavedState.nodes,
+      lastSavedState.edges,
+      lastSavedState.name
+    )
 
     const hasChanges =
-      JSON.stringify(currentSnapshot) !== JSON.stringify(lastSavedState)
+      JSON.stringify(currentSnapshot) !== JSON.stringify(lastSavedSnapshot)
     setHasUnsavedChanges(hasChanges)
   }, [nodes, edges, workflowName, lastSavedState])
 
@@ -460,12 +465,14 @@ function FlowContent() {
           description: "Your workflow has been saved successfully."
         })
 
-        // Update last saved state with sanitized data
-        setLastSavedState({
+        // Create a consistent snapshot for comparison
+        const savedSnapshot = {
           nodes: sanitizedNodes,
           edges: sanitizedEdges,
           name
-        })
+        }
+        
+        setLastSavedState(savedSnapshot)
         setHasUnsavedChanges(false)
 
         // If this was a new workflow, navigate to the workflow's URL without reload

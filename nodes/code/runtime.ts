@@ -1,3 +1,21 @@
+/**
+ * Code Node Runtime - WinterCG-compatible
+ * 
+ * Uses only JavaScript standard APIs:
+ * - AsyncFunction constructor (via Object.getPrototypeOf)
+ * - console.* for logging
+ * - JSON for serialization
+ * 
+ * Note: Uses Function/AsyncFunction constructor which is available in:
+ * - Cloudflare Workers
+ * - WinterJS
+ * - Deno
+ * - Node.js
+ * - Browsers
+ * 
+ * Security: Code execution is sandboxed within the function scope.
+ */
+
 import type { ExtractProps, ExtractSecrets } from "node-base"
 import type CodeNode from "./definition"
 
